@@ -1,0 +1,41 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\Tobie\\OneDrive\\Documentos\\University\\Third Year\\UCLL\\Group 1\\Local Programming\\Back-End\\Project LPR381\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{198DC415-7D52-4094-A5A6-86F16418FC0B}|Project LPR381\\Project LPR381.csproj|c:\\users\\tobie\\onedrive\\documentos\\university\\third year\\ucll\\group 1\\local programming\\back-end\\project lpr381\\project lpr381\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{198DC415-7D52-4094-A5A6-86F16418FC0B}|Project LPR381\\Project LPR381.csproj|solutionrelative:project lpr381\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 1,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:128:0:{116d2292-e37d-41cd-a077-ebacac4c8cc4}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "Program.cs",
+              "DocumentMoniker": "C:\\Users\\Tobie\\OneDrive\\Documentos\\University\\Third Year\\UCLL\\Group 1\\Local Programming\\Back-End\\Project LPR381\\Project LPR381\\Program.cs",
+              "RelativeDocumentMoniker": "Project LPR381\\Program.cs",
+              "ToolTip": "C:\\Users\\Tobie\\OneDrive\\Documentos\\University\\Third Year\\UCLL\\Group 1\\Local Programming\\Back-End\\Project LPR381\\Project LPR381\\Program.cs",
+              "RelativeToolTip": "Project LPR381\\Program.cs",
+              "ViewState": "AgIAABwAAAAAAAAAAAAswFUAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-08-10T13:41:36.387Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

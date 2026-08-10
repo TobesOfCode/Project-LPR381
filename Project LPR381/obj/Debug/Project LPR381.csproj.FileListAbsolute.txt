@@ -1,0 +1,7 @@
+C:\Users\Tobie\OneDrive\Documentos\University\Third Year\UCLL\Group 1\Local Programming\Back-End\Project LPR381\Project LPR381\bin\Debug\solve.exe.config
+C:\Users\Tobie\OneDrive\Documentos\University\Third Year\UCLL\Group 1\Local Programming\Back-End\Project LPR381\Project LPR381\bin\Debug\solve.exe
+C:\Users\Tobie\OneDrive\Documentos\University\Third Year\UCLL\Group 1\Local Programming\Back-End\Project LPR381\Project LPR381\bin\Debug\solve.pdb
+C:\Users\Tobie\OneDrive\Documentos\University\Third Year\UCLL\Group 1\Local Programming\Back-End\Project LPR381\Project LPR381\obj\Debug\Project LPR381.csproj.AssemblyReference.cache
+C:\Users\Tobie\OneDrive\Documentos\University\Third Year\UCLL\Group 1\Local Programming\Back-End\Project LPR381\Project LPR381\obj\Debug\Project LPR381.csproj.CoreCompileInputs.cache
+C:\Users\Tobie\OneDrive\Documentos\University\Third Year\UCLL\Group 1\Local Programming\Back-End\Project LPR381\Project LPR381\obj\Debug\solve.exe
+C:\Users\Tobie\OneDrive\Documentos\University\Third Year\UCLL\Group 1\Local Programming\Back-End\Project LPR381\Project LPR381\obj\Debug\solve.pdb
