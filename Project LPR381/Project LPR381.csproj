@@ -52,6 +52,7 @@
     <Compile Include="Layer2_SolverEngine\BranchAndBound.cs" />
     <Compile Include="Layer2_SolverEngine\CuttingPlane.cs" />
     <Compile Include="Layer2_SolverEngine\Knapsack.cs" />
+    <Compile Include="Layer2_SolverEngine\RevisedSimplex.cs" />
     <Compile Include="Layer3_Exporter\Exporter.cs" />
     <Compile Include="Models\Constraint.cs" />
     <Compile Include="Models\LinearModel.cs" />
