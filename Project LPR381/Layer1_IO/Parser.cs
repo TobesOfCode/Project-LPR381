@@ -5,19 +5,20 @@ using LPR381.Models;
 
 namespace LPR381.Layer1_IO
 {
-    // Purpose: Handles text stream ingestion of input files, validating formatting and translating raw lines into structured C# models.
-    // Use case: Triggered from the console menu UI to load user-selected model text files into memory.
+    // Layer 1: The Parser. 
+    // Its entire job is to read the messy text file line-by-line and translate it into our clean C# LinearModel object.
     public class Parser
     {
-        // Purpose: Reads the input text file line-by-line using a StreamReader and parses objectives, constraints, and bin/int sign restrictions.
-        // Use case: Called when a user uploads a model file to convert raw text into a structured LinearModel object.
         public static LinearModel ScanFile(string filePath)
         {
+            // First, make sure the file actually exists before we try to read it.
             if (!File.Exists(filePath)) throw new FileNotFoundException($"The file at {filePath} could not be found.");
 
+            // Create an empty blueprint to hold our data.
             LinearModel model = new LinearModel();
             List<string> rawLines = new List<string>();
 
+            // Open the file and read it line-by-line. We ignore empty lines and clean up extra spaces.
             using (StreamReader sr = new StreamReader(filePath))
             {
                 string line;
@@ -27,33 +28,48 @@ namespace LPR381.Layer1_IO
                 }
             }
 
-            if (rawLines.Count < 3) throw new FormatException("Invalid file format.");
+            // We need at least 3 lines: an objective, one constraint, and the sign restrictions.
+            if (rawLines.Count < 3) throw new FormatException("Invalid file format. A minimum of 3 rows (Objective, Constraint, Sign Restrictions) is required.");
 
-            // 1. Parse Objective Function Line
+            // 1. Read the very first line (The Objective Function)
             string[] objTokens = rawLines[0].Split(' ');
             model.OptimizationType = objTokens[0].ToLower();
+            if (model.OptimizationType != "max" && model.OptimizationType != "min")
+            {
+                throw new FormatException($"Invalid optimization type '{objTokens[0]}'. Must be 'max' or 'min'.");
+            }
+            // Send the rest of the numbers on line 1 to our helper method to convert them from text to doubles.
             model.ObjectiveCoefficients = ExtractCoefficients(objTokens, 1);
 
-            // 2. Parse Constraint Rows
+            // 2. Loop through all the middle lines (The Constraints)
             for (int i = 1; i < rawLines.Count - 1; i++)
             {
                 string[] conTokens = rawLines[i].Split(' ');
                 Constraint constraint = new Constraint();
 
+                // Find where the <=, >=, or = sign is hiding in the line
                 int relationIndex = Array.FindIndex(conTokens, t => t == "<=" || t == ">=" || t == "=");
-                if (relationIndex == -1) throw new FormatException($"Missing relation in constraint row {i}");
+                if (relationIndex == -1) throw new FormatException($"Missing relation operator (<=, >=, =) in constraint row {i}");
 
                 constraint.Relation = conTokens[relationIndex];
+
+                // The number right after the operator is our RHS limit
                 constraint.RHS = double.Parse(conTokens[relationIndex + 1], System.Globalization.CultureInfo.InvariantCulture);
 
+                // Everything before the operator is a coefficient. Pull them out and convert them.
                 string[] coeffTokens = new string[relationIndex];
                 Array.Copy(conTokens, coeffTokens, relationIndex);
                 constraint.Coefficients = ExtractCoefficients(coeffTokens, 0);
 
+                if (constraint.Coefficients.Count != model.ObjectiveCoefficients.Count)
+                {
+                    throw new FormatException($"Constraint row {i} has {constraint.Coefficients.Count} coefficients, expected {model.ObjectiveCoefficients.Count}.");
+                }
+
                 model.Constraints.Add(constraint);
             }
 
-            // 3. Parse Sign Restrictions (Supporting standard symbols like '+', 'urs' as well as 'bin' / 'int')
+            // 3. Read the very last line (The Sign Restrictions)
             string[] signTokens = rawLines[rawLines.Count - 1].Split(' ');
             foreach (var token in signTokens)
             {
@@ -63,8 +79,7 @@ namespace LPR381.Layer1_IO
             return model;
         }
 
-        // Purpose: Parses space-separated signed tokens into structured numeric coefficient lists.
-        // Use case: Helper method used internally by ScanFile to interpret objective function and constraint numbers.
+        // Helper method: Takes text like "+ 5 - 2" and turns it into actual numbers (5.0, -2.0)
         private static List<double> ExtractCoefficients(string[] tokens, int startIndex)
         {
             List<double> coefficients = new List<double>();
@@ -72,6 +87,7 @@ namespace LPR381.Layer1_IO
             {
                 if (tokens[i] == "+" || tokens[i] == "-")
                 {
+                    if (i + 1 >= tokens.Length) throw new FormatException("Trailing unary operator found without matching coefficient value.");
                     double value = double.Parse(tokens[i + 1], System.Globalization.CultureInfo.InvariantCulture);
                     if (tokens[i] == "-") value = -value;
                     coefficients.Add(value);
@@ -85,28 +101,22 @@ namespace LPR381.Layer1_IO
             return coefficients;
         }
 
-        // Purpose: Prints a beautifully formatted, color-coded UI dashboard displaying all ingested model values using horizontal lines.
-        // Use case: Called immediately after ScanFile() in Program.cs to verify file parsing accuracy visually.
+        // Helper method: Prints a clean summary of what we just parsed so the user can verify it's correct.
         public static void PrintIngestedModel(LinearModel model)
         {
-            Console.Clear();
             Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.WriteLine("\n  ──────────────────────────────────────────────────────────────");
-            Console.WriteLine("                    PARSER INGESTION REPORT                     ");
-            Console.WriteLine("  ──────────────────────────────────────────────────────────────");
+            Console.WriteLine("\n  +------------------------------------------------------------+");
+            Console.WriteLine("  |                  PARSER INGESTION REPORT                   |");
+            Console.WriteLine("  +------------------------------------------------------------+");
 
-            // 1. Optimization Type Badge
             Console.Write("    MODEL TYPE      : ");
             Console.ForegroundColor = model.OptimizationType == "max" ? ConsoleColor.Green : ConsoleColor.Yellow;
             Console.Write($"{model.OptimizationType.ToUpper()}\n");
             Console.ForegroundColor = ConsoleColor.Cyan;
 
-            // 2. Objective Coefficients
             Console.WriteLine($"    OBJ COEFFICIENTS: [ {string.Join(", ", model.ObjectiveCoefficients)} ]");
-
-            // 3. Constraints Count & List
             Console.WriteLine($"    TOTAL CONSTR.   : {model.Constraints.Count}");
-            Console.WriteLine("  ──────────────────────────────────────────────────────────────");
+            Console.WriteLine("  +------------------------------------------------------------+");
             Console.WriteLine("    CONSTRAINTS BREAKDOWN:");
 
             int index = 1;
@@ -116,11 +126,9 @@ namespace LPR381.Layer1_IO
                 Console.WriteLine($"      [{index++}] {constraintStr}");
             }
 
-            // 4. Sign & Variable Restrictions (Including int/bin tags)
-            Console.WriteLine("  ──────────────────────────────────────────────────────────────");
+            Console.WriteLine("  +------------------------------------------------------------+");
             Console.WriteLine($"    SIGN RESTRICT.  : [ {string.Join(", ", model.SignRestrictions)} ]");
-
-            Console.WriteLine("  ──────────────────────────────────────────────────────────────\n");
+            Console.WriteLine("  +------------------------------------------------------------+\n");
             Console.ResetColor();
         }
     }

@@ -53,7 +53,6 @@
     <Compile Include="Layer2_SolverEngine\CuttingPlane.cs" />
     <Compile Include="Layer2_SolverEngine\Knapsack.cs" />
     <Compile Include="Layer3_Exporter\Exporter.cs" />
-    <Compile Include="Models\BBSnode.cs" />
     <Compile Include="Models\Constraint.cs" />
     <Compile Include="Models\LinearModel.cs" />
     <Compile Include="Models\Node.cs" />
