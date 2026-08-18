@@ -2,7 +2,6 @@
 
 namespace LPR381
 {
-    // You can keep this enum here or move it to your Models folder
     public enum MenuOption
     {
         Exit = 0,
@@ -18,69 +17,90 @@ namespace LPR381
     {
         static void Main(string[] args)
         {
+            // Premium Console Configuration
+            Console.Title = "LPR381 Solver Engine v1.0";
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            Console.BackgroundColor = ConsoleColor.Black;
+            Console.Clear();
+
             bool keepRunning = true;
 
             while (keepRunning)
             {
                 Console.Clear();
-                Console.WriteLine("=================================");
-                Console.WriteLine("    LPR381 - Solver Engine       ");
-                Console.WriteLine("=================================");
-                Console.WriteLine("Please select an algorithm:");
-                Console.WriteLine("1. Standard Primal Simplex");
-                Console.WriteLine("2. Revised Primal Simplex");
-                Console.WriteLine("3. Branch & Bound");
-                Console.WriteLine("4. Knapsack");
-                Console.WriteLine("5. Cutting Plane");
-                Console.WriteLine("6. Post-Optimality Analysis");
-                Console.WriteLine("0. Exit");
-                Console.WriteLine("=================================");
-                Console.Write("Enter your choice (0-6): ");
+                DrawHeader();
+
+                // Menu Options
+                Console.ForegroundColor = ConsoleColor.White;
+                Console.WriteLine("  1. Standard Primal Simplex");
+                Console.WriteLine("  2. Revised Primal Simplex");
+                Console.WriteLine("  3. Branch & Bound Simplex");
+                Console.WriteLine("  4. Branch & Bound Knapsack");
+                Console.WriteLine("  5. Cutting Plane Algorithm");
+                Console.WriteLine("  6. Post-Optimality Analysis");
+                Console.WriteLine("  0. Exit");
+                Console.WriteLine(" ╚══════════════════════════════════════════════╝");
+
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.Write("\n  Enter your command [0-6]: ");
+                Console.ResetColor();
 
                 string input = Console.ReadLine();
 
                 if (Enum.TryParse(input, out MenuOption choice))
                 {
+                    Console.Clear();
                     switch (choice)
                     {
                         case MenuOption.StandardPrimalSimplex:
-                            Console.WriteLine("\nExecuting Standard Primal Simplex...");
-                            break;
-                        case MenuOption.RevisedPrimalSimplex:
-                            Console.WriteLine("\nExecuting Revised Primal Simplex...");
-                            break;
-                        case MenuOption.BranchAndBound:
-                            Console.WriteLine("\nExecuting Branch & Bound...");
-                            break;
-                        case MenuOption.Knapsack:
-                            Console.WriteLine("\nExecuting Knapsack...");
-                            break;
-                        case MenuOption.CuttingPlane:
-                            Console.WriteLine("\nExecuting Cutting Plane...");
-                            break;
-                        case MenuOption.PostOptimality:
-                            Console.WriteLine("\nOpening Post-Optimality Menu...");
+                            DrawSubHeader("STANDARD PRIMAL SIMPLEX");
+                            // Trigger Parser and BaseSimplex here
                             break;
                         case MenuOption.Exit:
-                            Console.WriteLine("\nExiting program. Goodbye!");
+                            Console.ForegroundColor = ConsoleColor.Cyan;
+                            Console.WriteLine("\n  Shutting down Solver Engine. Goodbye!\n");
+                            Console.ResetColor();
                             keepRunning = false;
                             break;
                         default:
-                            Console.WriteLine("\nInvalid choice. Please select a valid number from the menu.");
+                            Console.ForegroundColor = ConsoleColor.Red;
+                            Console.WriteLine("\n  [!] Feature under construction or invalid choice.");
                             break;
                     }
                 }
                 else
                 {
-                    Console.WriteLine("\nInvalid input. Please enter a number.");
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("\n  [!] Invalid input. Please enter a numerical value.");
                 }
 
                 if (keepRunning)
                 {
-                    Console.WriteLine("\nPress any key to return to the menu...");
+                    Console.ForegroundColor = ConsoleColor.DarkGray;
+                    Console.WriteLine("\n  Press any key to return to the main menu..." );
                     Console.ReadKey();
                 }
             }
+        }
+
+        // --- UI Helper Methods ---
+
+        static void DrawHeader()
+        {
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            Console.WriteLine("\n ╔══════════════════════════════════════════════╗");
+            Console.WriteLine(" ║          LPR381 - SOLVER ENGINE              ║");
+            Console.WriteLine(" ╠══════════════════════════════════════════════╣");
+            Console.WriteLine(" ║  Select an algorithm to process the model:   ║");
+            Console.WriteLine(" ║                                              ║");
+        }
+
+        static void DrawSubHeader(string title)
+        {
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine($"\n  === {title} ===");
+            Console.ResetColor();
+            Console.WriteLine();
         }
     }
 }

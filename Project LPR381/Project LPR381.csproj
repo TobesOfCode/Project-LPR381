@@ -5,7 +5,7 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{198DC415-7D52-4094-A5A6-86F16418FC0B}</ProjectGuid>
-    <OutputType>Library</OutputType>
+    <OutputType>Exe</OutputType>
     <RootNamespace>Project_LPR381</RootNamespace>
     <AssemblyName>solve</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>

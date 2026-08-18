@@ -1,12 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 
-namespace Project_LPR381.Models
+namespace LPR381.Models
 {
-    internal class Constraint
+    public class Constraint
     {
+        public List<double> Coefficients { get; set; } = new List<double>();
+        public string Relation { get; set; }
+        public double RHS { get; set; }
     }
 }

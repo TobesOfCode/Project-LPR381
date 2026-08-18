@@ -1,12 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 
-namespace Project_LPR381.Models
+namespace LPR381.Models
 {
-    internal class LinearModel
+    public class LinearModel
     {
+        public string OptimizationType { get; set; }
+        public List<double> ObjectiveCoefficients { get; set; } = new List<double>();
+        public List<Constraint> Constraints { get; set; } = new List<Constraint>();
+        public List<string> SignRestrictions { get; set; } = new List<string>();
     }
 }
