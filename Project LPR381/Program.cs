@@ -250,13 +250,90 @@ namespace LPR381
                             break;
 
                         case MenuOption.PlaceholderModule:
-                            DrawSubHeader("BRANCH & BOUND SIMPLEX (SLOT 3)");
-                            Console.ForegroundColor = ConsoleColor.Yellow;
-                            Console.WriteLine("  [ASSIGNMENT NOTE] Reserved for Member 2 (Tree & Node Specialist).");
-                            Console.WriteLine("  Will utilize SimplexResult DTO from Layer 2 to generate sub-problem nodes.");
-                            Console.ResetColor();
-                            break;
+                            DrawSubHeader("BRANCH & BOUND SIMPLEX");
 
+                            if (!isFileImported)
+                            {
+                                Console.ForegroundColor = ConsoleColor.Red;
+                                Console.WriteLine("  [!] No linear model loaded in memory.");
+                                Console.WriteLine("  Please select Option 7 first to upload an input file.");
+                                Console.ResetColor();
+                                break;
+                            }
+
+                            try
+                            {
+                                // Determine which variables must be integer.
+                                bool[] integerVariables =
+                                    new bool[currentModel.SignRestrictions.Count];
+
+                                for (int i = 0;
+                                     i < currentModel.SignRestrictions.Count;
+                                     i++)
+                                {
+                                    string restriction =
+                                        currentModel.SignRestrictions[i]
+                                            .Trim()
+                                            .ToLower();
+
+                                    integerVariables[i] =
+                                        restriction == "int" ||
+                                        restriction == "bin";
+                                }
+
+                                Console.ForegroundColor = ConsoleColor.DarkCyan;
+                                Console.WriteLine(
+                                    $"  Model loaded: {currentModel.ObjectiveCoefficients.Count} variables, " +
+                                    $"{currentModel.Constraints.Count} constraints."
+                                );
+
+                                Console.WriteLine(
+                                    "  Integer-restricted variables:"
+                                );
+
+                                for (int i = 0;
+                                     i < integerVariables.Length;
+                                     i++)
+                                {
+                                    if (integerVariables[i])
+                                    {
+                                        Console.WriteLine(
+                                            $"    x{i + 1} -> {currentModel.SignRestrictions[i]}"
+                                        );
+                                    }
+                                }
+
+                                Console.ResetColor();
+
+                                // Create your Branch & Bound solver.
+                                BranchAndBound solver =
+                                    new BranchAndBound();
+
+                                // Start Branch & Bound using the same
+                                // LinearModel loaded by Option 7.
+                                solver.Solve(
+                                    currentModel,
+                                    integerVariables
+                                );
+                            }
+                            catch (InvalidOperationException ioe)
+                            {
+                                Console.ForegroundColor = ConsoleColor.Red;
+                                Console.WriteLine(
+                                    $"\n  [MODEL EXCEPTION] {ioe.Message}"
+                                );
+                                Console.ResetColor();
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.ForegroundColor = ConsoleColor.Red;
+                                Console.WriteLine(
+                                    $"\n  [BRANCH & BOUND ERROR] {ex.Message}"
+                                );
+                                Console.ResetColor();
+                            }
+
+                            break;
                         case MenuOption.Exit:
                             Console.ForegroundColor = ConsoleColor.Cyan;
                             Console.WriteLine("\n  Terminating LPR381 Solver Engine. Goodbye!\n");
