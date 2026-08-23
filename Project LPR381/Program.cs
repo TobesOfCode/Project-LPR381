@@ -7,6 +7,7 @@ using LPR381.Models;
 using LPR381.Layer1_IO;
 using LPR381.Layer2_SolverEngine;
 using LPR381.Layer3_Exporter;
+using Project_LPR381.PostOptimality;
 
 namespace LPR381
 {
@@ -255,6 +256,75 @@ namespace LPR381
                             Console.WriteLine("  [ASSIGNMENT NOTE] Reserved for Member 2 (Tree & Node Specialist).");
                             Console.WriteLine("  Will utilize SimplexResult DTO from Layer 2 to generate sub-problem nodes.");
                             Console.ResetColor();
+                            break;
+
+                        // ==========================================
+                        // OPTION 6: POST-OPTIMALITY & SENSITIVITY
+                        // ==========================================
+                        case MenuOption.PostOptimality:
+                            DrawSubHeader("POST-OPTIMALITY & SENSITIVITY ANALYSIS (MEMBER 4)");
+
+                            if (!isOptimalStateSaved || optimalState == null)
+                            {
+                                Console.ForegroundColor = ConsoleColor.Red;
+                                Console.WriteLine("  [!] No optimal solution found yet.");
+                                Console.WriteLine("  Please solve a model first using options 1 or 2.");
+                                Console.ResetColor();
+                                break;
+                            }
+
+                            try
+                            {
+                                bool showPostOptMenu = true;
+                                while (showPostOptMenu)
+                                {
+                                    Console.Clear();
+                                    Console.ForegroundColor = ConsoleColor.Cyan;
+                                    Console.WriteLine("\n  ╔════════════════════════════════════════════════════════╗");
+                                    Console.WriteLine("  ║          POST-OPTIMALITY & SENSITIVITY                ║");
+                                    Console.WriteLine("  ╚════════════════════════════════════════════════════════╝");
+                                    Console.ResetColor();
+
+                                    Console.ForegroundColor = ConsoleColor.White;
+                                    Console.WriteLine("\n  1. Sensitivity Analysis");
+                                    Console.WriteLine("  2. Duality");
+                                    Console.WriteLine("  0. Return to Main Menu");
+                                    Console.WriteLine("  ──────────────────────────────────────────────────────────");
+
+                                    Console.ForegroundColor = ConsoleColor.Yellow;
+                                    Console.Write("\n  Select an option [0-2]: ");
+                                    Console.ResetColor();
+
+                                    string postOptInput = Console.ReadLine();
+
+                                    switch (postOptInput)
+                                    {
+                                        case "1":
+                                            var sensitivity = new SensitivityAnalysis(optimalState, currentModel);
+                                            sensitivity.ShowMenu();
+                                            break;
+                                        case "2":
+                                            var duality = new Duality(currentModel);
+                                            duality.ShowMenu();
+                                            break;
+                                        case "0":
+                                            showPostOptMenu = false;
+                                            break;
+                                        default:
+                                            Console.ForegroundColor = ConsoleColor.Red;
+                                            Console.WriteLine("\n  [!] Invalid option.");
+                                            Console.ResetColor();
+                                            Console.ReadKey();
+                                            break;
+                                    }
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.ForegroundColor = ConsoleColor.Red;
+                                Console.WriteLine($"\n  [ANALYSIS ERROR] {ex.Message}");
+                                Console.ResetColor();
+                            }
                             break;
 
                         case MenuOption.Exit:
