@@ -5,20 +5,31 @@ using LPR381.Models;
 
 namespace LPR381.Layer1_IO
 {
-    // Layer 1: The Parser. 
-    // Its entire job is to read the messy text file line-by-line and translate it into our clean C# LinearModel object.
+    // -------------------------------------------------------------------------
+    // CLASS: Parser (Layer 1)
+    // Purpose: This is the translator. Its entire job is to read the messy, 
+    // human-written text file line-by-line and carefully translate it into our 
+    // clean C# LinearModel object so the rest of the program can do the math.
+    // -------------------------------------------------------------------------
     public class Parser
     {
+        // -------------------------------------------------------------------------
+        // METHOD: ScanFile
+        // Purpose: Reads the text file and slices it into logical pieces (Objective, 
+        // Constraints, and Sign Restrictions).
+        // -------------------------------------------------------------------------
         public static LinearModel ScanFile(string filePath)
         {
-            // First, make sure the file actually exists before we try to read it.
+            // First, a quick safety check to make sure the file actually exists on the hard drive.
             if (!File.Exists(filePath)) throw new FileNotFoundException($"The file at {filePath} could not be found.");
 
-            // Create an empty blueprint to hold our data.
+            // Create an empty blueprint to hold our translated data.
             LinearModel model = new LinearModel();
             List<string> rawLines = new List<string>();
 
-            // Open the file and read it line-by-line. We ignore empty lines and clean up extra spaces.
+            // Open the file and read it line-by-line. 
+            // We ignore empty lines and use a Regex tool to squash multiple spaces into a single space, 
+            // making it much easier to chop up later.
             using (StreamReader sr = new StreamReader(filePath))
             {
                 string line;
@@ -28,17 +39,19 @@ namespace LPR381.Layer1_IO
                 }
             }
 
-            // We need at least 3 lines: an objective, one constraint, and the sign restrictions.
+            // We mathematically need at least 3 lines: an objective, at least one constraint, and the sign restrictions.
             if (rawLines.Count < 3) throw new FormatException("Invalid file format. A minimum of 3 rows (Objective, Constraint, Sign Restrictions) is required.");
 
-            // 1. Read the very first line (The Objective Function)
+            // 1. Parse the very first line (The Objective Function)
+            // We split the line by spaces. The first word should be "max" or "min".
             string[] objTokens = rawLines[0].Split(' ');
             model.OptimizationType = objTokens[0].ToLower();
             if (model.OptimizationType != "max" && model.OptimizationType != "min")
             {
                 throw new FormatException($"Invalid optimization type '{objTokens[0]}'. Must be 'max' or 'min'.");
             }
-            // Send the rest of the numbers on line 1 to our helper method to convert them from text to doubles.
+
+            // Send the rest of the numbers on line 1 to our helper method to convert them from text to C# doubles.
             model.ObjectiveCoefficients = ExtractCoefficients(objTokens, 1);
 
             // 2. Loop through all the middle lines (The Constraints)
@@ -47,20 +60,21 @@ namespace LPR381.Layer1_IO
                 string[] conTokens = rawLines[i].Split(' ');
                 Constraint constraint = new Constraint();
 
-                // Find where the <=, >=, or = sign is hiding in the line
+                // Find where the <=, >=, or = sign is hiding in the line.
                 int relationIndex = Array.FindIndex(conTokens, t => t == "<=" || t == ">=" || t == "=");
                 if (relationIndex == -1) throw new FormatException($"Missing relation operator (<=, >=, =) in constraint row {i}");
 
                 constraint.Relation = conTokens[relationIndex];
 
-                // The number right after the operator is our RHS limit
+                // The number directly after the operator is our RHS capacity limit.
                 constraint.RHS = double.Parse(conTokens[relationIndex + 1], System.Globalization.CultureInfo.InvariantCulture);
 
-                // Everything before the operator is a coefficient. Pull them out and convert them.
+                // Everything before the operator is a coefficient. Pull them out and convert them!
                 string[] coeffTokens = new string[relationIndex];
                 Array.Copy(conTokens, coeffTokens, relationIndex);
                 constraint.Coefficients = ExtractCoefficients(coeffTokens, 0);
 
+                // A quick safety check: we must have the exact same number of variables in our constraint as our objective function.
                 if (constraint.Coefficients.Count != model.ObjectiveCoefficients.Count)
                 {
                     throw new FormatException($"Constraint row {i} has {constraint.Coefficients.Count} coefficients, expected {model.ObjectiveCoefficients.Count}.");
@@ -79,7 +93,12 @@ namespace LPR381.Layer1_IO
             return model;
         }
 
-        // Helper method: Takes text like "+ 5 - 2" and turns it into actual numbers (5.0, -2.0)
+        // -------------------------------------------------------------------------
+        // HELPER METHOD: ExtractCoefficients
+        // Purpose: Takes messy text (like "+ 5 - 2") and turns it into actual math numbers.
+        // How it works: It looks for '+' or '-' signs. If it finds one, it pairs it 
+        // with the number right next to it so we capture negative values correctly.
+        // -------------------------------------------------------------------------
         private static List<double> ExtractCoefficients(string[] tokens, int startIndex)
         {
             List<double> coefficients = new List<double>();
@@ -88,10 +107,12 @@ namespace LPR381.Layer1_IO
                 if (tokens[i] == "+" || tokens[i] == "-")
                 {
                     if (i + 1 >= tokens.Length) throw new FormatException("Trailing unary operator found without matching coefficient value.");
+
+                    // Parse the number, forcing InvariantCulture so standard dots are used instead of commas for decimals.
                     double value = double.Parse(tokens[i + 1], System.Globalization.CultureInfo.InvariantCulture);
-                    if (tokens[i] == "-") value = -value;
+                    if (tokens[i] == "-") value = -value; // Flip it to negative if we saw a minus sign!
                     coefficients.Add(value);
-                    i++;
+                    i++; // Skip the next token since we just used it
                 }
                 else
                 {
@@ -101,9 +122,16 @@ namespace LPR381.Layer1_IO
             return coefficients;
         }
 
-        // Helper method: Prints a clean summary of what we just parsed so the user can verify it's correct.
+        // -------------------------------------------------------------------------
+        // METHOD: PrintIngestedModel
+        // Purpose: Prints a beautiful, clean summary of what we just parsed to the 
+        // screen so the user can verify the computer understood the text file correctly.
+        // -------------------------------------------------------------------------
         public static void PrintIngestedModel(LinearModel model)
         {
+            // Clear the screen so this report gets full focus!
+            Console.Clear();
+
             Console.ForegroundColor = ConsoleColor.Cyan;
             Console.WriteLine("\n  +------------------------------------------------------------+");
             Console.WriteLine("  |                  PARSER INGESTION REPORT                   |");

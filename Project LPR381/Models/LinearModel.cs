@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿// File: Models/LinearModel.cs
+using System.Collections.Generic;
 
 namespace LPR381.Models
 {

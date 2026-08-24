@@ -1,4 +1,5 @@
-﻿using System;
+﻿// File: Program.cs
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
@@ -7,12 +8,13 @@ using LPR381.Models;
 using LPR381.Layer1_IO;
 using LPR381.Layer2_SolverEngine;
 using LPR381.Layer3_Exporter;
-using Project_LPR381.PostOptimality;
+using Project_LPR381.PostOptimality; // Added Member 4 Post-Optimality namespace
 
 namespace LPR381
 {
-    // Purpose: Enumerates selectable menu actions for the console application.
-    // Workload Plan: Organized neatly by team member responsibilities.
+    // Purpose: This list acts as our menu's table of contents. 
+    // It assigns a specific number to each team member's job so the system knows exactly what to run.
+    // Workload Plan: Organized neatly by team member responsibilities so no one trips over each other.
     public enum MenuOption
     {
         Exit = 0,
@@ -29,7 +31,7 @@ namespace LPR381
         CuttingPlane = 5, // Reserved for Gomory Cutting Plane
 
         // --- MEMBER 4: POST-OPTIMALITY ANALYST ---
-        PostOptimality = 6, // Reserved for Sensitivity Analysis & Duality
+        PostOptimality = 6, // Sensitivity Analysis & Duality Module
 
         // --- SYSTEM / UTILITY ---
         ManageFile = 7
@@ -37,16 +39,23 @@ namespace LPR381
 
     class Program
     {
+        // This is the front door of our application. 
+        // When you run 'solve.exe', the computer starts executing right here.
         [STAThread]
         static void Main(string[] args)
         {
+            // First things first: wipe the screen clean and set up the console's title and colors.
+            Console.Clear();
             Console.Title = "LPR381 Solver Engine v1.0 - Operations Research";
             Console.OutputEncoding = Encoding.UTF8;
             Console.BackgroundColor = ConsoleColor.Black;
             Console.Clear();
 
+            // This boolean acts as the power switch for our application.
             bool keepRunning = true;
 
+            // These variables are our system's memory. 
+            // They remember if a file has been uploaded and if we've successfully solved a problem yet.
             string loadedFilePath = "None";
             bool isFileImported = false;
             LinearModel currentModel = null;
@@ -54,11 +63,14 @@ namespace LPR381
             bool isOptimalStateSaved = false;
             SimplexResult optimalState = null;
 
+            // This is our main dashboard loop. It keeps the program running endlessly until 'keepRunning' becomes false.
             while (keepRunning)
             {
+                // Wipe the screen clean every time the main menu loops so it doesn't get cluttered!
                 Console.Clear();
                 DrawHeader(isFileImported, loadedFilePath, isOptimalStateSaved);
 
+                // Print out the menu options for the user to read.
                 Console.ForegroundColor = ConsoleColor.White;
                 Console.WriteLine("  7. Manage Model File (Upload / Inspect / Delete)");
                 Console.WriteLine("  --------------------------------------------------------------");
@@ -67,7 +79,7 @@ namespace LPR381
                 Console.WriteLine("  3. Branch & Bound Simplex");
                 Console.WriteLine("  4. Branch & Bound Knapsack");
                 Console.WriteLine("  5. Cutting Plane Algorithm");
-                Console.WriteLine("  6. Post-Optimality & Sensitivity");
+                Console.WriteLine("  6. Post-Optimality & Sensitivity (Analysis & Duality)");
                 Console.WriteLine("  0. Exit System");
                 Console.WriteLine("  --------------------------------------------------------------");
 
@@ -75,16 +87,25 @@ namespace LPR381
                 Console.Write("\n  Enter command choice [0-7]: ");
                 Console.ResetColor();
 
+                // Wait for the user to type something and press Enter.
                 string input = Console.ReadLine();
 
+                // Try to convert what the user typed into one of our MenuOption enum numbers.
                 if (Enum.TryParse(input, out MenuOption choice))
                 {
+                    // As soon as a valid menu option is chosen, clear the screen for the new content!
                     Console.Clear();
+
+                    // Like a train switchyard, this directs the user's choice to the correct block of code.
                     switch (choice)
                     {
+                        // ==========================================
+                        // OPTION 7: FILE MANAGEMENT
+                        // ==========================================
                         case MenuOption.ManageFile:
                             DrawSubHeader("FILE INGESTION & DATA INSPECTION (LAYER 1)");
 
+                            // If a file is already loaded, give the user a mini-menu to delete it or inspect it.
                             if (isFileImported)
                             {
                                 Console.ForegroundColor = ConsoleColor.Yellow;
@@ -105,6 +126,7 @@ namespace LPR381
                                 }
                                 else if (fileAction == "3")
                                 {
+                                    // Wipe the memory clean.
                                     currentModel = null;
                                     isFileImported = false;
                                     loadedFilePath = "None";
@@ -119,6 +141,7 @@ namespace LPR381
                                 else if (fileAction != "1") break;
                             }
 
+                            // If no file is loaded, open the standard Windows File Explorer so they can click a .txt file.
                             Console.ForegroundColor = ConsoleColor.Gray;
                             Console.WriteLine("  [INFO] Opening Windows File Explorer dialogue...");
                             Console.ResetColor();
@@ -133,6 +156,7 @@ namespace LPR381
                                 if (openFileDialog.ShowDialog() == DialogResult.OK) inputPath = openFileDialog.FileName;
                             }
 
+                            // If they clicked 'Cancel' in the file explorer.
                             if (string.IsNullOrWhiteSpace(inputPath))
                             {
                                 Console.ForegroundColor = ConsoleColor.Yellow;
@@ -141,12 +165,13 @@ namespace LPR381
                                 break;
                             }
 
+                            // Try to hand the text file over to Layer 1 (The Parser) to translate into our C# model.
                             try
                             {
                                 currentModel = Parser.ScanFile(inputPath);
                                 isFileImported = true;
                                 loadedFilePath = inputPath;
-                                isOptimalStateSaved = false;
+                                isOptimalStateSaved = false; // Reset the optimal state because we have a new file
                                 optimalState = null;
 
                                 Parser.PrintIngestedModel(currentModel);
@@ -157,6 +182,7 @@ namespace LPR381
                             }
                             catch (Exception ex)
                             {
+                                // If the text file has bad formatting, we catch the error here so the program doesn't crash.
                                 Console.ForegroundColor = ConsoleColor.Red;
                                 Console.WriteLine($"\n  [PARSER ERROR] {ex.Message}");
                                 Console.ResetColor();
@@ -167,7 +193,7 @@ namespace LPR381
                         // OPTION 1: STANDARD PRIMAL SIMPLEX
                         // ==========================================
                         case MenuOption.StandardPrimalSimplex:
-                            DrawSubHeader("STANDARD PRIMAL SIMPLEX SOLVER");
+                            DrawSubHeader("STANDARD PRIMAL SIMPLEX SOLVER (LAYER 2 & 3)");
 
                             if (!isFileImported)
                             {
@@ -182,19 +208,22 @@ namespace LPR381
                             {
                                 ExplainSimplexProcess(currentModel, false);
 
+                                // Hand the blueprint to our Base Engine to calculate the optimal answer.
                                 BaseSimplex engine = new BaseSimplex();
                                 engine.InitializeTableau(currentModel);
                                 engine.Solve();
 
+                                // Grab the 'care package' of final results and save it in memory.
                                 optimalState = engine.GetResult();
                                 isOptimalStateSaved = true;
 
+                                // Call our helper method to print the answers and export to the Downloads folder.
                                 PrintAndExportResults(loadedFilePath, optimalState, engine.IterationLog.ToString());
                             }
                             catch (InvalidOperationException ioe)
                             {
                                 Console.ForegroundColor = ConsoleColor.Red;
-                                Console.WriteLine($"\n  [MODEL EXCEPTION] {ioe.Message}");
+                                Console.WriteLine($"\n  [MODEL EXCEPTION]\n{ioe.Message}");
                                 Console.ResetColor();
                             }
                             catch (Exception ex)
@@ -224,22 +253,22 @@ namespace LPR381
                             {
                                 ExplainSimplexProcess(currentModel, true);
 
-                                // Instantiate our brand new Revised Engine instead!
+                                // Hand the blueprint to our Revised Engine (the memory-efficient one!).
                                 RevisedSimplex engine = new RevisedSimplex();
                                 engine.InitializeModel(currentModel);
                                 engine.Solve();
 
-                                // It still returns the exact same care package object
+                                // Grab the 'care package' of final results and save it in memory.
                                 optimalState = engine.GetResult();
                                 isOptimalStateSaved = true;
 
-                                // Print and save using the exact same flow
+                                // Call our helper method to print the answers and export to the Downloads folder.
                                 PrintAndExportResults(loadedFilePath, optimalState, engine.IterationLog.ToString());
                             }
                             catch (InvalidOperationException ioe)
                             {
                                 Console.ForegroundColor = ConsoleColor.Red;
-                                Console.WriteLine($"\n  [MODEL EXCEPTION] {ioe.Message}");
+                                Console.WriteLine($"\n  [MODEL EXCEPTION]\n{ioe.Message}");
                                 Console.ResetColor();
                             }
                             catch (Exception ex)
@@ -250,6 +279,9 @@ namespace LPR381
                             }
                             break;
 
+                        // ==========================================
+                        // OPTION 3: BRANCH & BOUND
+                        // ==========================================
                         case MenuOption.PlaceholderModule:
                             DrawSubHeader("BRANCH & BOUND SIMPLEX (SLOT 3)");
                             Console.ForegroundColor = ConsoleColor.Yellow;
@@ -264,6 +296,7 @@ namespace LPR381
                         case MenuOption.PostOptimality:
                             DrawSubHeader("POST-OPTIMALITY & SENSITIVITY ANALYSIS (MEMBER 4)");
 
+                            // Member 4's code relies on the optimal answer. If we don't have one, stop here.
                             if (!isOptimalStateSaved || optimalState == null)
                             {
                                 Console.ForegroundColor = ConsoleColor.Red;
@@ -275,13 +308,15 @@ namespace LPR381
 
                             try
                             {
+                                // A mini-menu loop specifically for Post-Optimality
                                 bool showPostOptMenu = true;
                                 while (showPostOptMenu)
                                 {
+                                    // Clear the screen every time we loop back to this sub-menu
                                     Console.Clear();
                                     Console.ForegroundColor = ConsoleColor.Cyan;
                                     Console.WriteLine("\n  ╔════════════════════════════════════════════════════════╗");
-                                    Console.WriteLine("  ║          POST-OPTIMALITY & SENSITIVITY                ║");
+                                    Console.WriteLine("  ║          POST-OPTIMALITY & SENSITIVITY                 ║");
                                     Console.WriteLine("  ╚════════════════════════════════════════════════════════╝");
                                     Console.ResetColor();
 
@@ -300,14 +335,17 @@ namespace LPR381
                                     switch (postOptInput)
                                     {
                                         case "1":
+                                            // Launch the Sensitivity Analysis UI
                                             var sensitivity = new SensitivityAnalysis(optimalState, currentModel);
                                             sensitivity.ShowMenu();
                                             break;
                                         case "2":
+                                            // Launch the Duality UI
                                             var duality = new Duality(currentModel);
                                             duality.ShowMenu();
                                             break;
                                         case "0":
+                                            // Flip the switch to leave this sub-menu and go back to the main dashboard
                                             showPostOptMenu = false;
                                             break;
                                         default:
@@ -327,14 +365,18 @@ namespace LPR381
                             }
                             break;
 
+                        // ==========================================
+                        // OPTION 0: EXIT
+                        // ==========================================
                         case MenuOption.Exit:
                             Console.ForegroundColor = ConsoleColor.Cyan;
                             Console.WriteLine("\n  Terminating LPR381 Solver Engine. Goodbye!\n");
                             Console.ResetColor();
-                            keepRunning = false;
+                            keepRunning = false; // Turns off the main dashboard loop, ending the program.
                             break;
 
                         default:
+                            // Catch-all if they type a valid number that we just haven't built out yet.
                             Console.ForegroundColor = ConsoleColor.Red;
                             Console.WriteLine("\n  [!] Module under active development or invalid option entered.");
                             Console.ResetColor();
@@ -343,11 +385,13 @@ namespace LPR381
                 }
                 else
                 {
+                    // If they typed letters instead of numbers, scold them gently.
                     Console.ForegroundColor = ConsoleColor.Red;
                     Console.WriteLine("\n  [!] Invalid input. Please enter a valid menu digit (0-7).");
                     Console.ResetColor();
                 }
 
+                // Pause the screen before we loop back around so the user can actually read the results!
                 if (keepRunning)
                 {
                     Console.ForegroundColor = ConsoleColor.DarkGray;
@@ -357,7 +401,8 @@ namespace LPR381
             }
         }
 
-        // Helper: Unifies the printing and exporting process to avoid repeated code.
+        // Helper Method: Prints the final optimal variables to the screen and triggers Layer 3 to save the file.
+        // We use this method so we don't have to write the exact same code for both Option 1 and Option 2.
         static void PrintAndExportResults(string loadedFilePath, SimplexResult optimalState, string iterationsLog)
         {
             Console.ForegroundColor = ConsoleColor.Green;
@@ -366,6 +411,8 @@ namespace LPR381
             Console.WriteLine("  ==============================================================");
             Console.WriteLine($"   Optimal Objective (Z) : {optimalState.OptimalZ.ToString("F3", System.Globalization.CultureInfo.InvariantCulture)}");
             Console.WriteLine("   Optimal Variable Vector:");
+
+            // Loop through our care package's dictionary and print out every variable and its answer.
             foreach (var variable in optimalState.VariableValues)
             {
                 Console.WriteLine($"     {variable.Key,-6} = {variable.Value.ToString("F3", System.Globalization.CultureInfo.InvariantCulture),10}");
@@ -373,6 +420,7 @@ namespace LPR381
             Console.WriteLine("  ==============================================================");
             Console.ResetColor();
 
+            // Call Layer 3 (The Exporter) to do its magic and give us the exact path where it saved the file.
             string savedFilePath = Exporter.ExportResult(loadedFilePath, optimalState, iterationsLog);
 
             Console.ForegroundColor = ConsoleColor.Green;
@@ -381,6 +429,7 @@ namespace LPR381
             Console.WriteLine($"  >> {savedFilePath}");
             Console.ResetColor();
 
+            // Give the user a handy shortcut to instantly open the text file without digging through their folders.
             Console.ForegroundColor = ConsoleColor.Yellow;
             Console.Write("\n  Would you like to open the generated text file now? (Y/N): ");
             Console.ResetColor();
@@ -390,6 +439,7 @@ namespace LPR381
             }
         }
 
+        // Helper Method: Draws the sleek UI box at the top of the dashboard.
         static void DrawHeader(bool isImported, string filePath, bool isOptimalGenerated)
         {
             Console.ForegroundColor = ConsoleColor.Cyan;
@@ -400,6 +450,8 @@ namespace LPR381
             Console.WriteLine("  SYSTEM STATUS & MEMORY MONITOR:                              ");
 
             Console.Write("  File Ingestion : ");
+
+            // Dynamic text that changes color depending on if a file is in our system memory.
             if (isImported)
             {
                 Console.ForegroundColor = ConsoleColor.Green;
@@ -415,6 +467,8 @@ namespace LPR381
             Console.WriteLine("");
 
             Console.Write("  Tableau State  : ");
+
+            // Dynamic text that changes color depending on if we have solved the math yet.
             if (isOptimalGenerated)
             {
                 Console.ForegroundColor = ConsoleColor.Green;
@@ -431,6 +485,7 @@ namespace LPR381
             Console.WriteLine("  +------------------------------------------------------------+");
         }
 
+        // Helper Method: Just a quick visual separator line so we don't have to type it out every time.
         static void DrawSubHeader(string title)
         {
             Console.ForegroundColor = ConsoleColor.Green;
@@ -440,6 +495,7 @@ namespace LPR381
             Console.ResetColor();
         }
 
+        // Helper Method: Prints a small text box explaining the mathematical steps before they run.
         static void ExplainSimplexProcess(LinearModel model, bool isRevised)
         {
             Console.ForegroundColor = ConsoleColor.DarkCyan;
@@ -448,6 +504,7 @@ namespace LPR381
             Console.WriteLine("  +------------------------------------------------------------+");
             Console.WriteLine($"   1. Problem Formulation: {model.OptimizationType.ToUpper()} with {model.ObjectiveCoefficients.Count} vars, {model.Constraints.Count} rows.");
 
+            // Changes the text dynamically depending on if we are running Option 1 or Option 2.
             if (isRevised)
             {
                 Console.WriteLine("    2. Memory Setup: Initialize Inverse Basis Matrix (B^-1)     ");

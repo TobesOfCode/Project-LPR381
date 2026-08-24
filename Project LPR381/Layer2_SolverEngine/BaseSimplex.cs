@@ -4,69 +4,148 @@ using LPR381.Models;
 
 namespace LPR381.Layer2_SolverEngine
 {
-    // Layer 2: The Solver Engine.
-    // This is the brain of the operation. It takes our organized LinearModel, turns it into a math grid, and runs the Simplex algorithm.
+    // Layer 2: The Base Solver Engine.
+    // Think of this class as the main calculator of our program. 
+    // It takes the rules from the text file, turns them into a giant math grid (a tableau), 
+    // and calculates the best possible answer step-by-step using the Primal Simplex algorithm.
     public class BaseSimplex
     {
-        // We use a standard 2D array for the Simplex tableaus. Think of it like a giant Excel spreadsheet.
+        // -------------------------------------------------------------------------
+        // PROPERTIES (The memory storage for our calculator)
+        // -------------------------------------------------------------------------
+
+        // This is our main 2D grid. Imagine it as a giant Excel spreadsheet where all the math happens.
         public double[,] Tableau { get; private set; }
+
+        // These keep track of how tall (rows) and wide (columns) our grid is.
         public int NumRows { get; private set; }
         public int NumCols { get; private set; }
+
+        // These hold the labels for our grid so we know what variables we are looking at (like "x1", "s1", "Z").
         public string[] ColumnHeaders { get; private set; }
         public string[] RowHeaders { get; private set; }
 
-        // We store every single iteration of the grid into this string builder so Layer 3 can export it later.
+        // We use this to save a text copy of every single grid we create. 
+        // Later, Layer 3 will write this massive string to the final text file.
         public StringBuilder IterationLog { get; private set; } = new StringBuilder();
 
+        // Keeps track of whether we are trying to maximize profit or minimize cost.
         private bool isMaximization;
+
+        // A safe copy of the original problem so we can double-check our answers at the very end.
         private LinearModel originalModel;
 
-        // Step 1: Build the starting grid.
+        // -------------------------------------------------------------------------
+        // METHOD: InitializeTableau
+        // Purpose: Builds the very first starting grid before we do any math.
+        // How it works: It looks at the constraints (<=, >=, =) and figures out how 
+        // many extra columns (Slack, Excess, or Artificial variables) we need to add.
+        // -------------------------------------------------------------------------
         public void InitializeTableau(LinearModel model)
         {
             originalModel = model;
             isMaximization = model.OptimizationType == "max";
 
-            // Figure out how big the grid needs to be.
-            NumRows = model.Constraints.Count + 1;
             int numDecisionVars = model.ObjectiveCoefficients.Count;
-            int numSlackVars = model.Constraints.Count;
-            NumCols = numDecisionVars + numSlackVars + 1;
+            int numSlacks = 0;
+            int numExcess = 0;
+            int numArtificials = 0;
+
+            // Step 1: Count what kind of extra columns we need based on the mathematical rules.
+            foreach (var c in model.Constraints)
+            {
+                if (c.Relation == "<=") numSlacks++;
+                else if (c.Relation == ">=") { numExcess++; numArtificials++; }
+                else if (c.Relation == "=") numArtificials++;
+            }
+
+            // Step 2: Set the exact size of our 2D grid.
+            NumRows = model.Constraints.Count + 1;
+            NumCols = numDecisionVars + numSlacks + numExcess + numArtificials + 1;
 
             Tableau = new double[NumRows, NumCols];
             ColumnHeaders = new string[NumCols];
             RowHeaders = new string[NumRows];
 
-            // Setup the labels across the top (x1, x2, s1, s2, RHS)
+            // Step 3: Create names for all our columns (x1, s1, e1, a1...) and line them up.
             for (int j = 0; j < numDecisionVars; j++) ColumnHeaders[j] = "x" + (j + 1);
-            for (int j = 0; j < numSlackVars; j++) ColumnHeaders[numDecisionVars + j] = "s" + (j + 1);
+
+            int currentSlack = numDecisionVars;
+            int currentExcess = numDecisionVars + numSlacks;
+            int currentArt = numDecisionVars + numSlacks + numExcess;
+
+            int sIdx = 1, eIdx = 1, aIdx = 1;
+            for (int j = 0; j < numSlacks; j++) ColumnHeaders[currentSlack + j] = "s" + (sIdx++);
+            for (int j = 0; j < numExcess; j++) ColumnHeaders[currentExcess + j] = "e" + (eIdx++);
+            for (int j = 0; j < numArtificials; j++) ColumnHeaders[currentArt + j] = "a" + (aIdx++);
+
             ColumnHeaders[NumCols - 1] = "RHS";
-
-            // Setup the labels down the side (Z, s1, s2)
             RowHeaders[0] = "Z";
-            for (int i = 1; i < NumRows; i++) RowHeaders[i] = "s" + i;
 
-            // Load the objective function into the very top row (Row 0).
+            // Step 4: Put the objective function values in the top row (the Z-Row).
             for (int j = 0; j < numDecisionVars; j++)
             {
                 Tableau[0, j] = isMaximization ? -model.ObjectiveCoefficients[j] : model.ObjectiveCoefficients[j];
             }
-            Tableau[0, NumCols - 1] = 0;
 
-            // Load the constraints into the rows underneath.
+            // Big-M is a massive penalty number (1,000,000) that scares the algorithm away from breaking our >= and = rules.
+            double M = 1000000.0;
+
+            // Step 5: Load the constraints into the grid and give them their specific extra variables.
             for (int i = 0; i < model.Constraints.Count; i++)
             {
                 int rowIndex = i + 1;
-                for (int j = 0; j < numDecisionVars; j++)
+                var con = model.Constraints[i];
+
+                for (int j = 0; j < numDecisionVars; j++) Tableau[rowIndex, j] = con.Coefficients[j];
+                Tableau[rowIndex, NumCols - 1] = con.RHS;
+
+                if (con.Relation == "<=")
                 {
-                    Tableau[rowIndex, j] = model.Constraints[i].Coefficients[j];
+                    Tableau[rowIndex, currentSlack] = 1.0; // Slack variable adds to capacity
+                    RowHeaders[rowIndex] = ColumnHeaders[currentSlack];
+                    currentSlack++;
                 }
-                Tableau[rowIndex, numDecisionVars + i] = 1.0; // Adding a slack variable!
-                Tableau[rowIndex, NumCols - 1] = model.Constraints[i].RHS;
+                else if (con.Relation == ">=")
+                {
+                    Tableau[rowIndex, currentExcess] = -1.0; // Excess subtracts from it
+                    currentExcess++;
+
+                    Tableau[rowIndex, currentArt] = 1.0;    // Artificial helps balance the math temporarily
+                    RowHeaders[rowIndex] = ColumnHeaders[currentArt];
+                    Tableau[0, currentArt] = isMaximization ? M : -M; // Punish the Z-Row with Big-M
+                    currentArt++;
+                }
+                else if (con.Relation == "=")
+                {
+                    Tableau[rowIndex, currentArt] = 1.0;    // Equal rules just need an Artificial variable
+                    RowHeaders[rowIndex] = ColumnHeaders[currentArt];
+                    Tableau[0, currentArt] = isMaximization ? M : -M;
+                    currentArt++;
+                }
+            }
+
+            // Step 6: Clean up the starting math. We have to mathematically "price out" the artificial variables 
+            // so the Big-M penalty is properly factored into the Z-Row before we start.
+            for (int i = 1; i < NumRows; i++)
+            {
+                if (RowHeaders[i].StartsWith("a"))
+                {
+                    int artCol = Array.IndexOf(ColumnHeaders, RowHeaders[i]);
+                    double factor = Tableau[0, artCol];
+                    for (int j = 0; j < NumCols; j++)
+                    {
+                        Tableau[0, j] -= factor * Tableau[i, j];
+                    }
+                }
             }
         }
 
-        // Step 2: The main math loop. We keep pivoting the matrix until we find the best answer.
+        // -------------------------------------------------------------------------
+        // METHOD: Solve
+        // Purpose: The main engine loop. It keeps making adjustments (pivots) until 
+        // we find the perfect, most optimal answer.
+        // -------------------------------------------------------------------------
         public void Solve()
         {
             int iterationCount = 0;
@@ -74,8 +153,13 @@ namespace LPR381.Layer2_SolverEngine
 
             while (true)
             {
-                // Check if we are done: are there any negative numbers left in the Z-Row?
+                // Safety net: If the math gets stuck in an endless loop, stop the computer so it doesn't freeze.
+                if (iterationCount > 1000) throw new Exception("Algorithm failed to converge (Infinite loop detected).");
+
+                // Look for the best variable to bring into our solution.
                 int pivotCol = GetEnteringVariable();
+
+                // If we can't find any negative numbers left in the Z-Row, we are done! The current grid is optimal.
                 if (pivotCol == -1)
                 {
                     string optMsg = "\n[SYSTEM] Optimality criterion satisfied. No negative coefficients in Z-Row.";
@@ -83,15 +167,15 @@ namespace LPR381.Layer2_SolverEngine
                     Console.WriteLine(optMsg);
                     Console.ResetColor();
                     IterationLog.AppendLine(optMsg);
-                    break; // Break the loop, we found the optimal answer!
+                    break;
                 }
 
-                // Figure out which row limits us the most so we don't break our constraints.
+                // Figure out which rule limits us the most, so we know which variable has to leave our solution.
                 int pivotRow = GetLeavingVariable(pivotCol);
                 if (pivotRow == -1)
                 {
-                    // If we can't find a limit, the math proves the model can grow infinitely (Unbounded).
-                    throw new InvalidOperationException("The model is UNBOUNDED. The pivot column contains no strictly positive technological coefficients.");
+                    // If there are no limits, it means our profit can grow forever. This is mathematically broken.
+                    throw new InvalidOperationException("The model is UNBOUNDED. The pivot column contains no positive numbers.");
                 }
 
                 string pivotMsg = $"\n[PIVOT STEP] Entering: {ColumnHeaders[pivotCol]} | Leaving: {RowHeaders[pivotRow]}";
@@ -100,20 +184,26 @@ namespace LPR381.Layer2_SolverEngine
                 Console.ResetColor();
                 IterationLog.AppendLine(pivotMsg);
 
-                // Do the actual math: normalize the row and zero-out the rest of the column.
+                // Do the actual math to update the grid for the next round.
                 PerformPivot(pivotRow, pivotCol);
                 iterationCount++;
                 LogAndPrintTableau(iterationCount);
             }
 
+            // Before we finish, do a final check to ensure the math didn't lie to us.
             CheckFeasibility();
         }
 
-        // Helper: Finds the most negative number in the Z-row.
+        // -------------------------------------------------------------------------
+        // METHOD: GetEnteringVariable
+        // Purpose: Finds the most negative number in the Z-row.
+        // How it works: It scans the top row. The most negative number tells us 
+        // which variable will give us the biggest jump in profit.
+        // -------------------------------------------------------------------------
         private int GetEnteringVariable()
         {
             int enteringCol = -1;
-            double minValue = -1e-7; // Using a tiny tolerance to avoid computer floating-point errors
+            double minValue = -1e-7; // A tiny tolerance so the computer doesn't get confused by rounding errors
 
             for (int j = 0; j < NumCols - 1; j++)
             {
@@ -126,7 +216,12 @@ namespace LPR381.Layer2_SolverEngine
             return enteringCol;
         }
 
-        // Helper: Performs the Minimum Ratio Test (RHS / Pivot Column Value).
+        // -------------------------------------------------------------------------
+        // METHOD: GetLeavingVariable
+        // Purpose: Performs the "Minimum Ratio Test".
+        // How it works: It takes the RHS (capacity) and divides it by the pivot column.
+        // The smallest positive ratio tells us which constraint will run out of space first.
+        // -------------------------------------------------------------------------
         private int GetLeavingVariable(int pivotCol)
         {
             int leavingRow = -1;
@@ -135,7 +230,7 @@ namespace LPR381.Layer2_SolverEngine
             for (int i = 1; i < NumRows; i++)
             {
                 double coefficient = Tableau[i, pivotCol];
-                if (coefficient > 1e-7) // Only divide by positive numbers!
+                if (coefficient > 1e-7) // We ONLY divide by positive numbers to find the limit!
                 {
                     double rhs = Tableau[i, NumCols - 1];
                     double ratio = rhs / coefficient;
@@ -150,14 +245,19 @@ namespace LPR381.Layer2_SolverEngine
             return leavingRow;
         }
 
-        // Helper: The core Jordan pivoting math that manipulates the 2D array.
+        // -------------------------------------------------------------------------
+        // METHOD: PerformPivot
+        // Purpose: The core math that manipulates the 2D array grid.
+        // How it works: It divides the pivot row to make the pivot number exactly 1.
+        // Then, it subtracts multiples of that row from all other rows to turn the rest of the column into 0s.
+        // -------------------------------------------------------------------------
         private void PerformPivot(int pivotRow, int pivotCol)
         {
-            // Swap the label
+            // Swap the label on the left side to show the new variable has entered.
             RowHeaders[pivotRow] = ColumnHeaders[pivotCol];
             double pivotValue = Tableau[pivotRow, pivotCol];
 
-            // Normalize the pivot row (divide everything by the pivot value)
+            // Normalize the row (make the pivot point 1)
             for (int j = 0; j < NumCols; j++) Tableau[pivotRow, j] /= pivotValue;
 
             // Zero out every other row in that column
@@ -174,10 +274,26 @@ namespace LPR381.Layer2_SolverEngine
             }
         }
 
-        // Helper: A safety check to make sure our math didn't drift into an impossible state.
+        // -------------------------------------------------------------------------
+        // METHOD: CheckFeasibility
+        // Purpose: Double-checks the final answer against reality.
+        // How it works: It checks if any Big-M variables survived. If they did, or if 
+        // the final math violates the original text file's rules, it throws an error.
+        // -------------------------------------------------------------------------
         private void CheckFeasibility()
         {
             SimplexResult currentResult = GetResult();
+
+            // If an artificial "a" variable is still hanging around with a positive value, the rules were impossible to satisfy.
+            foreach (var variable in currentResult.VariableValues)
+            {
+                if (variable.Key.StartsWith("a") && Math.Round(variable.Value, 5) > 0)
+                {
+                    throw new InvalidOperationException("The model is INFEASIBLE. An artificial (Big-M) variable remains in the optimal basis, meaning the constraints contradict each other.");
+                }
+            }
+
+            // Verify the answers against the literal text boundaries from the original file.
             for (int i = 0; i < originalModel.Constraints.Count; i++)
             {
                 double lhsSum = 0;
@@ -197,20 +313,34 @@ namespace LPR381.Layer2_SolverEngine
 
                 if (!isFeasible)
                 {
-                    throw new InvalidOperationException("The model is INFEASIBLE. The constraints yield an empty feasible region.");
+                    string lhsStr = lhsSum.ToString("F3", System.Globalization.CultureInfo.InvariantCulture);
+                    string rhsStr = rhs.ToString("F3", System.Globalization.CultureInfo.InvariantCulture);
+                    throw new InvalidOperationException(
+                        $"Mathematical Feasibility Failed on Constraint {i + 1}!\n" +
+                        $"  >> Equation evaluated: {lhsStr} {relation} {rhsStr}\n" +
+                        $"  >> Reason: The constraints conflict and form an empty feasible region."
+                    );
                 }
             }
         }
 
-        // Helper: Packages the final result so other team members can safely use it.
+        // -------------------------------------------------------------------------
+        // METHOD: GetResult
+        // Purpose: Packages the final optimal numbers into our DTO object.
+        // How it works: It creates a clean clone of the grid and builds a dictionary 
+        // of variables so other team members can easily use our results.
+        // -------------------------------------------------------------------------
         public SimplexResult GetResult()
         {
             SimplexResult result = new SimplexResult();
             result.OptimalZ = Tableau[0, NumCols - 1];
-            result.FinalTableau = (double[,])Tableau.Clone(); // Deep cloning so nobody breaks our base matrix
+
+            // Deep clone the array so nobody accidentally breaks our actual grid later.
+            result.FinalTableau = (double[,])Tableau.Clone();
             result.RowHeaders = (string[])RowHeaders.Clone();
             result.ColumnHeaders = (string[])ColumnHeaders.Clone();
 
+            // Match up the variable names with their final numbers.
             for (int j = 0; j < NumCols - 1; j++)
             {
                 string varName = ColumnHeaders[j];
@@ -223,16 +353,22 @@ namespace LPR381.Layer2_SolverEngine
             return result;
         }
 
-        // Helper: Creates a beautiful, dynamic text grid of the current numbers and saves it.
+        // -------------------------------------------------------------------------
+        // METHOD: LogAndPrintTableau
+        // Purpose: Draws the beautiful text grid for our iterations.
+        // How it works: It measures the length of every number and name to dynamically 
+        // calculate exactly how wide each column needs to be so it aligns perfectly.
+        // -------------------------------------------------------------------------
         private void LogAndPrintTableau(int iteration)
         {
-            // Measure how wide each column needs to be to fit the numbers perfectly.
+            // Measure how wide the labels on the left side need to be.
             int bvColWidth = 6;
             for (int i = 0; i < NumRows; i++)
             {
                 if (RowHeaders[i].Length + 2 > bvColWidth) bvColWidth = RowHeaders[i].Length + 2;
             }
 
+            // Measure how wide every other column needs to be to fit its biggest number.
             int[] colWidths = new int[NumCols];
             for (int j = 0; j < NumCols; j++)
             {
@@ -253,12 +389,12 @@ namespace LPR381.Layer2_SolverEngine
             Console.ResetColor();
             sb.AppendLine(title);
 
-            // Draw the top border using basic ASCII so it doesn't break in Notepad
+            // Draw the top line (like +----+----+----+ )
             string separator = GenerateAsciiSeparator(bvColWidth, colWidths);
             Console.WriteLine(separator);
             sb.AppendLine(separator);
 
-            // Draw the Header Row (x1, x2, s1, etc)
+            // Draw the column names across the top (x1, s1, e1, a1...)
             StringBuilder headerRow = new StringBuilder();
             headerRow.Append(" |").Append(CenterText("B.V", bvColWidth));
             for (int j = 0; j < NumCols; j++) headerRow.Append("|").Append(CenterText(ColumnHeaders[j], colWidths[j]));
@@ -270,14 +406,14 @@ namespace LPR381.Layer2_SolverEngine
             Console.WriteLine(separator);
             sb.AppendLine(separator);
 
-            // Draw the Data Rows
+            // Print the actual numbers row by row
             for (int i = 0; i < NumRows; i++)
             {
                 StringBuilder dataRow = new StringBuilder();
                 dataRow.Append(" |").Append(CenterText(RowHeaders[i], bvColWidth));
                 for (int j = 0; j < NumCols; j++)
                 {
-                    // Forcing 3 decimal points strictly per requirements
+                    // Force the numbers to have exactly 3 decimal points, aligned to the right.
                     string val = Tableau[i, j].ToString("F3", System.Globalization.CultureInfo.InvariantCulture);
                     dataRow.Append("|").Append(val.PadLeft(colWidths[j] - 1)).Append(" ");
                 }
@@ -286,7 +422,7 @@ namespace LPR381.Layer2_SolverEngine
                 Console.WriteLine(dataRow.ToString());
                 sb.AppendLine(dataRow.ToString());
 
-                // Draw a line under the Z-Row
+                // Draw a separator line immediately under the Z-Row to separate the profit from the rules.
                 if (i == 0 && NumRows > 1)
                 {
                     Console.WriteLine(separator);
@@ -297,10 +433,11 @@ namespace LPR381.Layer2_SolverEngine
             Console.WriteLine(separator);
             sb.AppendLine(separator);
 
-            // Finally, save this grid to our log!
+            // Save the beautifully formatted string to our log so the Exporter can write it to the file later!
             IterationLog.Append(sb.ToString());
         }
 
+        // Helper: Generates a flexible ASCII line (e.g. "+--------+--------+") based on our column width measurements.
         private string GenerateAsciiSeparator(int bvWidth, int[] colWidths)
         {
             StringBuilder sep = new StringBuilder();
@@ -310,6 +447,7 @@ namespace LPR381.Layer2_SolverEngine
             return sep.ToString();
         }
 
+        // Helper: Takes text and wraps it in spaces so it sits perfectly in the center of the column.
         private static string CenterText(string text, int width)
         {
             if (text.Length >= width) return text;
