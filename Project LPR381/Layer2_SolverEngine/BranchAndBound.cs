@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 
 namespace LPR381.Layer2_SolverEngine
 {
@@ -46,7 +47,11 @@ namespace LPR381.Layer2_SolverEngine
         // Example:
         // 3.000000001 should effectively be treated as 3.
         private const double IntegerTolerance = 0.000001;
-
+        /// <summary>
+        /// Stores the complete Branch & Bound execution trace
+        /// so it can be exported to the text report.
+        /// </summary>
+        public StringBuilder IterationLog { get; private set; }   = new StringBuilder();
         /// <summary>
         /// Constructor.
         /// Sets the Branch & Bound solver to its starting state.
@@ -70,7 +75,7 @@ namespace LPR381.Layer2_SolverEngine
         /// Starts the Branch & Bound process using the original LinearModel.
         /// The original LP relaxation becomes Sub-Problem 1.
         /// </summary>
-        public void Solve(LinearModel model,  bool[] integerVariables)
+        public SimplexResult Solve(LinearModel model, bool[] integerVariables)
         {
             // Reset the solver state so a new problem
             // starts with a completely clean tree.
@@ -87,57 +92,80 @@ namespace LPR381.Layer2_SolverEngine
 
             incumbentNodeId = null;
 
+            IterationLog.Clear();
+
             // Create the root of the Branch & Bound tree.
-            Node rootNode =  CreateNode( "1",  0  );
+            Node rootNode = CreateNode("1", 0);
 
             // The root represents the original problem.
             rootNode.Model = CloneModel(model);
             // Binary variables must satisfy 0 <= x <= 1
             // in the LP relaxation.
-            AddBinaryUpperBounds(   rootNode.Model  );
+            AddBinaryUpperBounds(rootNode.Model);
 
             rootNode.BranchDescription = "Root problem";
 
-            Console.WriteLine();
-            Console.WriteLine(  "=================================="  );
-            Console.WriteLine(  "       BRANCH & BOUND"  );
-            Console.WriteLine(  "=================================="  );
+            LogLine();
+            LogLine("==============================");
+            LogLine("       BRANCH & BOUND");
+            LogLine("==============================");
 
             // Solve the root LP relaxation.
             ExploreNode(rootNode, integerVariables);
-            Console.WriteLine();
-            Console.WriteLine(
-                "=================================="
-            );
-            Console.WriteLine(
-                "     FINAL INTEGER SOLUTION"
-            );
-            Console.WriteLine(
-                "=================================="
-            );
+            LogLine();
+            LogLine("==================================");
+            LogLine("     FINAL INTEGER SOLUTION");
+            LogLine("==================================");
 
             if (hasIncumbent)
             {
-                Console.WriteLine("Best Sub-Problem: {incumbentNodeId}"                );
+                LogLine($"Best Sub-Problem: {incumbentNodeId}");
 
-                Console.WriteLine("Optimal Objective Value: " + $"{incumbentObjectiveValue:0.###}"  );
+                LogLine( $"Optimal Objective Value: {incumbentObjectiveValue:0.###}"  );
 
-                Console.WriteLine();
-                Console.WriteLine(  "Decision Variables:"  );
+                LogLine();
+                LogLine("Decision Variables:");
 
                 for (int i = 0;
                      i < incumbentVariableValues.Length;
                      i++)
                 {
-                    Console.WriteLine(   $"x{i + 1} = " +  $"{incumbentVariableValues[i]:0.###}"    );
+                    LogLine( $"x{i + 1} = {incumbentVariableValues[i]:0.###}"   );
                 }
             }
             else
             {
-                Console.WriteLine(    "No feasible integer solution was found."    );
+                LogLine( "No feasible integer solution was found." );
             }
 
-            Console.WriteLine(   "==================================" );
+            LogLine("==================================");
+            // Package the final Branch & Bound answer
+            // into the same SimplexResult object used
+            // by the other solver modules.
+            SimplexResult finalResult =
+                new SimplexResult();
+
+            if (hasIncumbent)
+            {
+                finalResult.OptimalZ =
+                    incumbentObjectiveValue;
+
+                for (int i = 0;
+                     i < incumbentVariableValues.Length;
+                     i++)
+                {
+                    finalResult.VariableValues[
+                        $"x{i + 1}"
+                    ] = incumbentVariableValues[i];
+                }
+            }
+
+            return finalResult;
+        }
+        private void LogLine(string message = "")
+        {
+            Console.WriteLine(message);
+            IterationLog.AppendLine(message);
         }
 
         /// <summary>
@@ -466,30 +494,26 @@ namespace LPR381.Layer2_SolverEngine
     Node node,
     bool[] integerVariables)
         {
-            Console.WriteLine();
-            Console.WriteLine( $"Exploring Sub-Problem {node.SubProblemId}");
-            Console.WriteLine(
-                $"Depth: {node.Depth}"
-            );
+            LogLine();
+            LogLine( $"Exploring Sub-Problem {node.SubProblemId}");
+            LogLine(     $"Depth: {node.Depth}"    );
 
             if (!string.IsNullOrEmpty(node.BranchDescription))
             {
-                Console.WriteLine(
-                    $"Branch: {node.BranchDescription}"
-                );
+                LogLine(   $"Branch: {node.BranchDescription}"    );
             }
 
             // Solve the LP relaxation for this sub-problem
             // using Tobie's BaseSimplex solver.
             SolveRelaxation(node);
 
-            Console.WriteLine(  $"Objective Value: {node.ObjectiveValue:0.###}"    );
+            LogLine(  $"Objective Value: {node.ObjectiveValue:0.###}"    );
 
             // Display the decision-variable values
             // returned by the Simplex solver.
             for (int i = 0; i < node.VariableValues.Length;  i++)
             {
-                Console.WriteLine( $"x{i + 1} = {node.VariableValues[i]:0.###}"   );
+                LogLine( $"x{i + 1} = {node.VariableValues[i]:0.###}"   );
             }
             bool isMaximization = node.Model.OptimizationType.Trim().ToLower() == "max";
 
@@ -526,7 +550,7 @@ namespace LPR381.Layer2_SolverEngine
             // are going to branch on.
             double fractionalValue =    node.VariableValues[variableIndex];
 
-            Console.WriteLine(  $"Fractional variable found: " +  $"x{variableIndex + 1} = " +$"{fractionalValue:0.###}"
+            LogLine(  $"Fractional variable found: " +  $"x{variableIndex + 1} = " +$"{fractionalValue:0.###}"
             );
 
             // Create the two child sub-problems.
@@ -580,10 +604,13 @@ namespace LPR381.Layer2_SolverEngine
             BaseSimplex simplexSolver = new BaseSimplex();
 
             // Solve the prepared LP relaxation.
-            simplexSolver.InitializeTableau( modelForSimplex );
+            simplexSolver.InitializeTableau( modelForSimplex);
 
             simplexSolver.Solve();
 
+            // Add all of Tobie's tableau iterations for this
+            // Branch & Bound sub-problem to our master log.
+            IterationLog.Append(simplexSolver.IterationLog.ToString() );
             SimplexResult result =  simplexSolver.GetResult();
 
             // Store the Simplex result.
@@ -633,21 +660,15 @@ namespace LPR381.Layer2_SolverEngine
         /// Marks a node as fathomed so that
         /// it will not be explored any further.
         /// </summary>
-        private void FathomNode(
-            Node node,
-            string reason)
+        private void FathomNode(   Node node,   string reason)
         {
             node.IsFathomed = true;
             node.FathomReason = reason;
 
-            Console.WriteLine(
-                $"Sub-Problem {node.SubProblemId} fathomed: {reason}"
-            );
+            LogLine(  $"Sub-Problem {node.SubProblemId} fathomed: {reason}"     );
         }
 
-        private void UpdateIncumbent(
-    Node node,
-    bool isMaximization)
+        private void UpdateIncumbent(Node node, bool isMaximization)
         {
             // If we have no incumbent yet, the first feasible
             // integer solution automatically becomes the incumbent.
@@ -677,13 +698,9 @@ namespace LPR381.Layer2_SolverEngine
 
                 incumbentNodeId =   node.SubProblemId;
 
-                Console.WriteLine(
-                    $"NEW INCUMBENT: Sub-Problem {node.SubProblemId}"
-                );
+                LogLine($"NEW INCUMBENT: Sub-Problem {node.SubProblemId}"    );
 
-                Console.WriteLine(
-                    $"Objective Value = {node.ObjectiveValue:0.000}"
-                );
+                LogLine( $"Objective Value = {node.ObjectiveValue:0.000}"       );
             }
         }
 

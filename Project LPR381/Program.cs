@@ -305,16 +305,13 @@ namespace LPR381
 
                                 Console.ResetColor();
 
-                                // Create your Branch & Bound solver.
-                                BranchAndBound solver =
-                                    new BranchAndBound();
+                                BranchAndBound solver = new BranchAndBound();
 
-                                // Start Branch & Bound using the same
-                                // LinearModel loaded by Option 7.
-                                solver.Solve(
-                                    currentModel,
-                                    integerVariables
-                                );
+                                optimalState = solver.Solve( currentModel,  integerVariables );
+
+                                isOptimalStateSaved = true;
+
+                                PrintAndExportResults( loadedFilePath, optimalState, solver.IterationLog.ToString());
                             }
                             catch (InvalidOperationException ioe)
                             {
@@ -330,6 +327,81 @@ namespace LPR381
                                 Console.WriteLine(
                                     $"\n  [BRANCH & BOUND ERROR] {ex.Message}"
                                 );
+                                Console.ResetColor();
+                            }
+
+                            break;
+                        // ==========================================
+                        // OPTION 4: BRANCH & BOUND KNAPSACK
+                        // ==========================================
+                        case MenuOption.Knapsack:
+
+                            DrawSubHeader(
+                                "BRANCH & BOUND KNAPSACK"
+                            );
+
+                            if (!isFileImported)
+                            {
+                                Console.ForegroundColor =
+                                    ConsoleColor.Red;
+
+                                Console.WriteLine(
+                                    "  [!] No linear model loaded in memory."
+                                );
+
+                                Console.WriteLine(
+                                    "  Please select Option 7 first to upload an input file."
+                                );
+
+                                Console.ResetColor();
+
+                                break;
+                            }
+
+                            try
+                            {
+                                // Create the Knapsack Branch & Bound solver.
+                                Knapsack knapsackSolver =
+                                    new Knapsack();
+
+                                // Solve and receive the final result
+                                // in the same SimplexResult format used
+                                // by the other algorithms.
+                                optimalState =
+                                    knapsackSolver.Solve(
+                                        currentModel
+                                    );
+
+                                isOptimalStateSaved =
+                                    true;
+
+                                // Reuse Tobie's existing exporter.
+                                PrintAndExportResults(
+                                    loadedFilePath,
+                                    optimalState,
+                                    knapsackSolver.IterationLog.ToString()
+                                );
+                            }
+                            catch (InvalidOperationException ioe)
+                            {
+                                Console.ForegroundColor =
+                                    ConsoleColor.Red;
+
+                                Console.WriteLine(
+                                    $"\n  [MODEL EXCEPTION] {ioe.Message}"
+                                );
+
+                                Console.ResetColor();
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.ForegroundColor =
+                                    ConsoleColor.Red;
+
+                                Console.WriteLine(
+                                    $"\n  [KNAPSACK ERROR] {ex.Message}"
+                                );
+
                                 Console.ResetColor();
                             }
 
