@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Text;
 using LPR381.Models;
 
@@ -27,35 +28,49 @@ namespace LPR381.Layer2_SolverEngine
 
         private int NumRows;
         private int NumCols;
-        private string[] VariableNames; // Holds the names like "x1", "s1", "a1"
+        private string[] VariableNames; // Holds the names like "x1", "s1", "e1"
 
         // -------------------------------------------------------------------------
         // METHOD: InitializeModel
         // Purpose: Sets up all the matrices and arrays before the math begins.
-        // How it works: It counts what extra variables are needed, sizes the arrays, 
-        // and loads the initial numbers, including the Big-M penalty variables.
+        // How it works: It splits "=" rules into "<=" and ">=", assigns Slack to "<=", 
+        // and Excess to ">=". No artificial variables allowed!
         // -------------------------------------------------------------------------
         public void InitializeModel(LinearModel model)
         {
             originalModel = model;
             isMaximization = model.OptimizationType == "max";
 
+            // Step 1: Pre-process constraints. We do not use Big-M. 
+            // If we see an exact equal (=) rule, we literally split it into two separate rules.
+            List<Constraint> processedConstraints = new List<Constraint>();
+            foreach (var c in model.Constraints)
+            {
+                if (c.Relation == "=")
+                {
+                    processedConstraints.Add(new Constraint { Coefficients = new List<double>(c.Coefficients), Relation = "<=", RHS = c.RHS });
+                    processedConstraints.Add(new Constraint { Coefficients = new List<double>(c.Coefficients), Relation = ">=", RHS = c.RHS });
+                }
+                else
+                {
+                    processedConstraints.Add(c);
+                }
+            }
+
             int numDecisionVars = model.ObjectiveCoefficients.Count;
             int numSlacks = 0;
             int numExcess = 0;
-            int numArtificials = 0;
 
-            // Figure out how many of each extra variable we need based on the signs.
-            foreach (var con in model.Constraints)
+            // Step 2: Count how many of each extra variable we need based on the rules.
+            foreach (var con in processedConstraints)
             {
                 if (con.Relation == "<=") numSlacks++;
-                else if (con.Relation == ">=") { numExcess++; numArtificials++; }
-                else if (con.Relation == "=") numArtificials++;
+                else if (con.Relation == ">=") numExcess++;
             }
 
             // Set the exact sizes of our arrays
-            NumRows = model.Constraints.Count;
-            NumCols = numDecisionVars + numSlacks + numExcess + numArtificials;
+            NumRows = processedConstraints.Count;
+            NumCols = numDecisionVars + numSlacks + numExcess;
 
             A = new double[NumRows, NumCols];
             c = new double[NumCols];
@@ -73,21 +88,16 @@ namespace LPR381.Layer2_SolverEngine
 
             int currentSlack = numDecisionVars;
             int currentExcess = numDecisionVars + numSlacks;
-            int currentArt = numDecisionVars + numSlacks + numExcess;
-
-            // The big-M penalty to punish the algorithm if it breaks rules
-            double M = 1000000.0;
 
             // Pre-name our extra variables so we can track them easily later
-            int sIdx = 1, eIdx = 1, aIdx = 1;
+            int sIdx = 1, eIdx = 1;
             for (int j = 0; j < numSlacks; j++) VariableNames[currentSlack + j] = "s" + (sIdx++);
             for (int j = 0; j < numExcess; j++) VariableNames[currentExcess + j] = "e" + (eIdx++);
-            for (int j = 0; j < numArtificials; j++) VariableNames[currentArt + j] = "a" + (aIdx++);
 
-            // Build our starting matrices using the Big-M method logic
+            // Build our starting matrices using strictly pure Primal Slack & Excess rules
             for (int i = 0; i < NumRows; i++)
             {
-                var con = model.Constraints[i];
+                var con = processedConstraints[i];
                 for (int j = 0; j < numDecisionVars; j++)
                 {
                     A[i, j] = con.Coefficients[j];
@@ -100,28 +110,20 @@ namespace LPR381.Layer2_SolverEngine
                     c[currentSlack] = 0.0;
                     BV[i] = currentSlack;
                     currentSlack++;
+                    B_inv[i, i] = 1.0; // Slack establishes a normal Identity Matrix row
                 }
                 else if (con.Relation == ">=")
                 {
                     A[i, currentExcess] = -1.0;
                     c[currentExcess] = 0.0;
+                    BV[i] = currentExcess;
                     currentExcess++;
 
-                    A[i, currentArt] = 1.0;
-                    c[currentArt] = -M; // Always -M because Revised Simplex internal math maximizes natively
-                    BV[i] = currentArt;
-                    currentArt++;
+                    // To set the excess variable as basic, its coefficient must logically be +1 in the basis.
+                    // We achieve this natively in Revised Simplex by setting the Inverse Basis Matrix diagonal to -1.
+                    // This creates a mathematical inversion (like multiplying the entire row by -1).
+                    B_inv[i, i] = -1.0;
                 }
-                else if (con.Relation == "=")
-                {
-                    A[i, currentArt] = 1.0;
-                    c[currentArt] = -M;
-                    BV[i] = currentArt;
-                    currentArt++;
-                }
-
-                // The Inverse Basis always starts as a clean Identity matrix (1s on the diagonal, 0s everywhere else)
-                B_inv[i, i] = 1.0;
             }
         }
 
@@ -213,7 +215,9 @@ namespace LPR381.Layer2_SolverEngine
                     if (d[i] > 1e-7) // Only divide by positive numbers
                     {
                         double ratio = x_B[i] / d[i];
-                        if (ratio < minRatio)
+
+                        // Primal Simplex strictly requires non-negative ratios.
+                        if (ratio >= 0 && ratio < minRatio)
                         {
                             minRatio = ratio;
                             leavingRow = i;
@@ -224,7 +228,7 @@ namespace LPR381.Layer2_SolverEngine
                 // If there are no limits, the math proves the model can grow infinitely (broken).
                 if (leavingRow == -1)
                 {
-                    throw new InvalidOperationException("The model is UNBOUNDED. The computed entering column has no positive values.");
+                    throw new InvalidOperationException("The model is UNBOUNDED. The computed entering column has no positive limit ratios.");
                 }
 
                 string leaveRatioStr = minRatio.ToString("F3", System.Globalization.CultureInfo.InvariantCulture);
@@ -316,15 +320,6 @@ namespace LPR381.Layer2_SolverEngine
         private void CheckFeasibility()
         {
             SimplexResult currentResult = GetResult();
-
-            // If an artificial (Big-M) variable is still hanging around with a positive value, the rules were impossible to satisfy.
-            foreach (var variable in currentResult.VariableValues)
-            {
-                if (variable.Key.StartsWith("a") && Math.Round(variable.Value, 5) > 0)
-                {
-                    throw new InvalidOperationException("The model is INFEASIBLE. An artificial (Big-M) variable remains in the optimal basis, meaning the constraints contradict each other.");
-                }
-            }
 
             // Verify the answers against the literal text boundaries from the original file.
             for (int i = 0; i < originalModel.Constraints.Count; i++)
