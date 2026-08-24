@@ -283,27 +283,159 @@ namespace LPR381
                         // OPTION 3: BRANCH & BOUND
                         // ==========================================
                         case MenuOption.PlaceholderModule:
-                            DrawSubHeader("BRANCH & BOUND SIMPLEX (SLOT 3)");
-                            Console.ForegroundColor = ConsoleColor.Yellow;
-                            Console.WriteLine("  [ASSIGNMENT NOTE] Reserved for Member 2 (Tree & Node Specialist).");
-                            Console.WriteLine("  Will utilize SimplexResult DTO from Layer 2 to generate sub-problem nodes.");
-                            Console.ResetColor();
-                            break;
+                            DrawSubHeader("BRANCH & BOUND SIMPLEX");
 
-                        // ==========================================
-                        // OPTION 6: POST-OPTIMALITY & SENSITIVITY
-                        // ==========================================
-                        case MenuOption.PostOptimality:
-                            DrawSubHeader("POST-OPTIMALITY & SENSITIVITY ANALYSIS (MEMBER 4)");
-
-                            // Member 4's code relies on the optimal answer. If we don't have one, stop here.
-                            if (!isOptimalStateSaved || optimalState == null)
+                            if (!isFileImported)
                             {
                                 Console.ForegroundColor = ConsoleColor.Red;
-                                Console.WriteLine("  [!] No optimal solution found yet.");
-                                Console.WriteLine("  Please solve a model first using options 1 or 2.");
+                                Console.WriteLine("  [!] No linear model loaded in memory.");
+                                Console.WriteLine("  Please select Option 7 first to upload an input file.");
                                 Console.ResetColor();
                                 break;
+                            }
+
+                            try
+                            {
+                                // Determine which variables must be integer.
+                                bool[] integerVariables =
+                                    new bool[currentModel.SignRestrictions.Count];
+
+                                for (int i = 0;
+                                     i < currentModel.SignRestrictions.Count;
+                                     i++)
+                                {
+                                    string restriction =
+                                        currentModel.SignRestrictions[i]
+                                            .Trim()
+                                            .ToLower();
+
+                                    integerVariables[i] =
+                                        restriction == "int" ||
+                                        restriction == "bin";
+                                }
+
+                                Console.ForegroundColor = ConsoleColor.DarkCyan;
+                                Console.WriteLine(
+                                    $"  Model loaded: {currentModel.ObjectiveCoefficients.Count} variables, " +
+                                    $"{currentModel.Constraints.Count} constraints."
+                                );
+
+                                Console.WriteLine(
+                                    "  Integer-restricted variables:"
+                                );
+
+                                for (int i = 0;
+                                     i < integerVariables.Length;
+                                     i++)
+                                {
+                                    if (integerVariables[i])
+                                    {
+                                        Console.WriteLine(
+                                            $"    x{i + 1} -> {currentModel.SignRestrictions[i]}"
+                                        );
+                                    }
+                                }
+
+                                Console.ResetColor();
+
+                                BranchAndBound solver = new BranchAndBound();
+
+                                optimalState = solver.Solve( currentModel,  integerVariables );
+
+                                isOptimalStateSaved = true;
+
+                                PrintAndExportResults( loadedFilePath, optimalState, solver.IterationLog.ToString());
+                            }
+                            catch (InvalidOperationException ioe)
+                            {
+                                Console.ForegroundColor = ConsoleColor.Red;
+                                Console.WriteLine(
+                                    $"\n  [MODEL EXCEPTION] {ioe.Message}"
+                                );
+                                Console.ResetColor();
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.ForegroundColor = ConsoleColor.Red;
+                                Console.WriteLine(
+                                    $"\n  [BRANCH & BOUND ERROR] {ex.Message}"
+                                );
+                                Console.ResetColor();
+                            }
+
+                            break;
+                        // ==========================================
+                        // OPTION 4: BRANCH & BOUND KNAPSACK
+                        // ==========================================
+                        case MenuOption.Knapsack:
+
+                            DrawSubHeader(
+                                "BRANCH & BOUND KNAPSACK"
+                            );
+
+                            if (!isFileImported)
+                            {
+                                Console.ForegroundColor =
+                                    ConsoleColor.Red;
+
+                                Console.WriteLine(
+                                    "  [!] No linear model loaded in memory."
+                                );
+
+                                Console.WriteLine(
+                                    "  Please select Option 7 first to upload an input file."
+                                );
+
+                                Console.ResetColor();
+
+                                break;
+                            }
+
+                            try
+                            {
+                                // Create the Knapsack Branch & Bound solver.
+                                Knapsack knapsackSolver =
+                                    new Knapsack();
+
+                                // Solve and receive the final result
+                                // in the same SimplexResult format used
+                                // by the other algorithms.
+                                optimalState =
+                                    knapsackSolver.Solve(
+                                        currentModel
+                                    );
+
+                                isOptimalStateSaved =
+                                    true;
+
+                                // Reuse Tobie's existing exporter.
+                                PrintAndExportResults(
+                                    loadedFilePath,
+                                    optimalState,
+                                    knapsackSolver.IterationLog.ToString()
+                                );
+                            }
+                            catch (InvalidOperationException ioe)
+                            {
+                                Console.ForegroundColor =
+                                    ConsoleColor.Red;
+
+                                Console.WriteLine(
+                                    $"\n  [MODEL EXCEPTION] {ioe.Message}"
+                                );
+
+                                Console.ResetColor();
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.ForegroundColor =
+                                    ConsoleColor.Red;
+
+                                Console.WriteLine(
+                                    $"\n  [KNAPSACK ERROR] {ex.Message}"
+                                );
+
+                                Console.ResetColor();
                             }
 
                             try
