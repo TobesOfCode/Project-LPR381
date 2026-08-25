@@ -1,4 +1,6 @@
-﻿using System;
+﻿#nullable disable
+// File: Program.cs
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
@@ -7,12 +9,15 @@ using LPR381.Models;
 using LPR381.Layer1_IO;
 using LPR381.Layer2_SolverEngine;
 using LPR381.Layer3_Exporter;
-using Project_LPR381.PostOptimality; // Added Member 4 Post-Optimality namespace
+using Project_LPR381.PostOptimality;
 
 namespace LPR381
 {
+    // -------------------------------------------------------------------------
+    // ENUM: MenuOption
     // Purpose: This list acts as our menu's table of contents. 
     // It assigns a specific number to each team member's job so the system knows exactly what to run.
+    // -------------------------------------------------------------------------
     public enum MenuOption
     {
         Exit = 0,
@@ -22,14 +27,14 @@ namespace LPR381
         RevisedPrimalSimplex = 2,
 
         // --- MEMBER 2: TREE & NODE SPECIALIST ---
-        BranchAndBoundSimplex = 3, // Renamed to accurately reflect it is now working!
+        BranchAndBoundSimplex = 3,
 
         // --- MEMBER 3: IP & KNAPSACK ENGINEER ---
-        Knapsack = 4, // Fully integrated Knapsack!
-        CuttingPlane = 5, // Reserved for Gomory Cutting Plane
+        Knapsack = 4,
+        CuttingPlane = 5,
 
         // --- MEMBER 4: POST-OPTIMALITY ANALYST ---
-        PostOptimality = 6, // Sensitivity Analysis & Duality Module
+        PostOptimality = 6,
 
         // --- SYSTEM / UTILITY ---
         ManageFile = 7
@@ -37,8 +42,11 @@ namespace LPR381
 
     class Program
     {
-        // This is the front door of our application. 
+        // -------------------------------------------------------------------------
+        // METHOD: Main
+        // Purpose: This is the front door of our application. 
         // When you run 'solve.exe', the computer starts executing right here.
+        // -------------------------------------------------------------------------
         [STAThread]
         static void Main(string[] args)
         {
@@ -296,10 +304,25 @@ namespace LPR381
                             {
                                 // Scan the text file rules to find out which specific variables must be integers.
                                 bool[] integerVariables = new bool[currentModel.SignRestrictions.Count];
+                                bool hasIntegerRestriction = false;
+
                                 for (int i = 0; i < currentModel.SignRestrictions.Count; i++)
                                 {
                                     string restriction = currentModel.SignRestrictions[i].Trim().ToLower();
                                     integerVariables[i] = restriction == "int" || restriction == "bin";
+
+                                    if (integerVariables[i]) hasIntegerRestriction = true;
+                                }
+
+                                // SAFETY CHECK: Prevent the user from running B&B on a continuous decimal model!
+                                if (!hasIntegerRestriction)
+                                {
+                                    Console.ForegroundColor = ConsoleColor.Yellow;
+                                    Console.WriteLine("  [!] No integer ('int') or binary ('bin') restrictions found in the text file.");
+                                    Console.WriteLine("  Branch & Bound specifically requires integer variables to function.");
+                                    Console.WriteLine("  Please modify the last row of your text file (e.g., 'int int int') or run Option 1 instead.");
+                                    Console.ResetColor();
+                                    break;
                                 }
 
                                 Console.ForegroundColor = ConsoleColor.DarkCyan;
@@ -373,6 +396,39 @@ namespace LPR381
                             {
                                 Console.ForegroundColor = ConsoleColor.Red;
                                 Console.WriteLine($"\n  [KNAPSACK ERROR] {ex.Message}");
+                                Console.ResetColor();
+                            }
+                            break;
+
+                        // ==========================================
+                        // OPTION 5: GOMORY CUTTING PLANE
+                        // ==========================================
+                        case MenuOption.CuttingPlane:
+                            DrawSubHeader("GOMORY CUTTING PLANE ALGORITHM");
+
+                            if (!isFileImported)
+                            {
+                                Console.ForegroundColor = ConsoleColor.Red;
+                                Console.WriteLine("  [!] No linear model loaded in memory.");
+                                Console.WriteLine("  Please select Option 7 first to upload an input file.");
+                                Console.ResetColor();
+                                break;
+                            }
+
+                            try
+                            {
+                                // Hand the model to Member 3's class and let it do ALL the work!
+                                // It will handle its own LP relaxation, looping, and packing the SimplexResult.
+                                CuttingPlane cpSolver = new CuttingPlane();
+                                optimalState = cpSolver.Solve(currentModel);
+                                isOptimalStateSaved = true;
+
+                                PrintAndExportResults(loadedFilePath, optimalState, cpSolver.IterationLog.ToString());
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.ForegroundColor = ConsoleColor.Red;
+                                Console.WriteLine($"\n  [CUTTING PLANE ERROR] {ex.Message}");
                                 Console.ResetColor();
                             }
                             break;
@@ -595,7 +651,6 @@ namespace LPR381
             Console.ResetColor();
         }
 
-        // Helper Method: Prints a small text box explaining the mathematical steps before they run.
         // Helper Method: Prints a small text box explaining the mathematical steps before they run.
         static void ExplainSimplexProcess(LinearModel model, bool isRevised)
         {

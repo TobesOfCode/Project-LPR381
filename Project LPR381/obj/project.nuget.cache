@@ -1,12 +1,13 @@
 {
   "version": 2,
-  "dgSpecHash": "zL78gDPcLw8=",
+  "dgSpecHash": "yFqzd0BKVaA=",
   "success": true,
-  "projectFilePath": "/Users/roebssie/Library/CloudStorage/OneDrive-belgiumcampus.ac.za/Belgium Campus/2026/LPR381/Project/Project-LPR381/Project LPR381/Project LPR381.csproj",
+  "projectFilePath": "C:\\Users\\Tobie\\Documents\\University\\LPR381\\Project\\Project-LPR381\\Project LPR381\\Project LPR381.csproj",
   "expectedPackageFiles": [
-    "/Users/roebssie/.nuget/packages/microsoft.netcore.app.ref/8.0.30/microsoft.netcore.app.ref.8.0.30.nupkg.sha512",
-    "/Users/roebssie/.nuget/packages/microsoft.aspnetcore.app.ref/8.0.30/microsoft.aspnetcore.app.ref.8.0.30.nupkg.sha512",
-    "/Users/roebssie/.nuget/packages/microsoft.netcore.app.host.osx-arm64/8.0.30/microsoft.netcore.app.host.osx-arm64.8.0.30.nupkg.sha512"
+    "C:\\Users\\Tobie\\.nuget\\packages\\microsoft.windowsdesktop.app.ref\\8.0.30\\microsoft.windowsdesktop.app.ref.8.0.30.nupkg.sha512",
+    "C:\\Users\\Tobie\\.nuget\\packages\\microsoft.netcore.app.ref\\8.0.30\\microsoft.netcore.app.ref.8.0.30.nupkg.sha512",
+    "C:\\Users\\Tobie\\.nuget\\packages\\microsoft.aspnetcore.app.ref\\8.0.30\\microsoft.aspnetcore.app.ref.8.0.30.nupkg.sha512",
+    "C:\\Users\\Tobie\\.nuget\\packages\\microsoft.netcore.app.host.win-x64\\8.0.30\\microsoft.netcore.app.host.win-x64.8.0.30.nupkg.sha512"
   ],
   "logs": []
 }

@@ -10,12 +10,14 @@ namespace Project_LPR381.PostOptimality
     // -------------------------------------------------------------------------
     // CLASS: SensitivityAnalysis
     // Purpose: This module answers "What if?" questions after we've found the optimal answer.
-    // It tells us how much we can mess with our limits (RHS) or our profits (Objective Coefficients) 
-    // before our perfect strategy breaks and we have to recalculate everything from scratch.
+    // What it does: Instead of forcing the computer to recalculate the entire problem from scratch 
+    // when a limit changes, it analyzes the final math grid to see how flexible our current strategy is.
+    // How it works: It calculates safe limits (allowable increases and decreases) for 
+    // both our resources (RHS constraints) and our profit margins (Objective Coefficients).
     // -------------------------------------------------------------------------
     public class SensitivityAnalysis
     {
-        // We keep safe copies of the final answer and the original problem to compare them.
+        // We keep safe copies of the final calculated answer and the original problem.
         private SimplexResult optimalState;
         private LinearModel originalModel;
 
@@ -28,9 +30,28 @@ namespace Project_LPR381.PostOptimality
         // -------------------------------------------------------------------------
         // METHOD: ShowMenu
         // Purpose: The dedicated user interface loop for Sensitivity Analysis.
+        // What it does: Gives the user a menu of different "What-if" reports to run.
+        // How it works: A standard while-loop with a switch statement that keeps the 
+        // user in this menu until they explicitly choose to exit (0).
         // -------------------------------------------------------------------------
         public void ShowMenu()
         {
+            // >>> SAFETY CHECK: Prevents the program from crashing if the user tries to run
+            // Sensitivity Analysis on a purely integer algorithm (like Knapsack or Cutting Plane) 
+            // which doesn't produce standard continuous Simplex grids.
+            if (optimalState.FinalTableau == null || optimalState.RowHeaders == null)
+            {
+                Console.Clear();
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("\n  [!] SENSITIVITY ANALYSIS UNAVAILABLE");
+                Console.WriteLine("  The current optimal solution does not contain a standard Simplex Tableau.");
+                Console.WriteLine("  (Note: Sensitivity Analysis is mathematically undefined for pure Knapsack/Integer algorithms).");
+                Console.ResetColor();
+                Console.WriteLine("\n  Press any key to return to the main menu...");
+                Console.ReadKey();
+                return;
+            }
+
             bool keepShowing = true;
 
             while (keepShowing)
@@ -39,7 +60,7 @@ namespace Project_LPR381.PostOptimality
                 Console.Clear();
                 Console.ForegroundColor = ConsoleColor.Cyan;
                 Console.WriteLine("\n  ╔════════════════════════════════════════════════════════╗");
-                Console.WriteLine("  ║             SENSITIVITY ANALYSIS MENU                  ║");
+                Console.WriteLine("  ║              SENSITIVITY ANALYSIS MENU                 ║");
                 Console.WriteLine("  ╚════════════════════════════════════════════════════════╝");
                 Console.ResetColor();
 
@@ -65,27 +86,13 @@ namespace Project_LPR381.PostOptimality
 
                 switch (input)
                 {
-                    case "1":
-                        ShowShadowPrices();
-                        break;
-                    case "2":
-                        ShowRHSSensitivity();
-                        break;
-                    case "3":
-                        ShowObjectiveSensitivity();
-                        break;
-                    case "4":
-                        ChangeRHS();
-                        break;
-                    case "5":
-                        AddNewActivity();
-                        break;
-                    case "6":
-                        ShowFullReport();
-                        break;
-                    case "0":
-                        keepShowing = false; // Exits the loop and goes back
-                        break;
+                    case "1": ShowShadowPrices(); break;
+                    case "2": ShowRHSSensitivity(); break;
+                    case "3": ShowObjectiveSensitivity(); break;
+                    case "4": ChangeRHS(); break;
+                    case "5": AddNewActivity(); break;
+                    case "6": ShowFullReport(); break;
+                    case "0": keepShowing = false; break;
                     default:
                         Console.ForegroundColor = ConsoleColor.Red;
                         Console.WriteLine("\n  Invalid option. Please select 0-6.");
@@ -98,12 +105,15 @@ namespace Project_LPR381.PostOptimality
 
         // -------------------------------------------------------------------------
         // METHOD: ShowShadowPrices
-        // Purpose: Shadow prices tell us exactly how much our total profit (Z) will 
-        // improve if we increase a specific constraint's limit by exactly 1 unit.
+        // Purpose: Shows the "Shadow Price" for every constraint.
+        // What it does: A Shadow Price tells us exactly how much our total profit (Z) 
+        // will improve if we increase a specific constraint's limit by exactly 1 unit.
+        // How it works: It looks at the top Z-Row of the final table. The number sitting 
+        // directly under a slack variable IS the shadow price for that constraint!
         // -------------------------------------------------------------------------
         private void ShowShadowPrices()
         {
-            Console.Clear(); // Clears the screen for a clean report
+            Console.Clear();
             Console.ForegroundColor = ConsoleColor.Cyan;
             Console.WriteLine("\n═══════════════════════════════════════════════════════════");
             Console.WriteLine("                    SHADOW PRICES                          ");
@@ -116,16 +126,19 @@ namespace Project_LPR381.PostOptimality
 
             Console.WriteLine("\n  Shadow Price = -Z_row[slack_column]\n");
 
-            Console.WriteLine($"  {"Constraint",-20} {"Shadow Price",-15}");
-            Console.WriteLine("  ──────────────────────────────────────────────────────────");
+            // Uniform ASCII Table format for clean presentation
+            Console.WriteLine("  +-----------------+-----------------+");
+            Console.WriteLine("  | Constraint      |    Shadow Price |");
+            Console.WriteLine("  +-----------------+-----------------+");
 
-            // To find the shadow price, we just look at the Z-Row (top row) under the slack variables.
             for (int i = 0; i < numConstraints; i++)
             {
                 int slackCol = numDecisionVars + i; // Jump past the x variables to find the slacks
                 double shadowPrice = -tableau[0, slackCol]; // The math rule for shadow prices
-                Console.WriteLine($"  Constraint {i + 1,-12} {shadowPrice,15:F4}");
+                Console.WriteLine($"  | Constraint {i + 1,-4} | {shadowPrice,15:F3} |");
             }
+
+            Console.WriteLine("  +-----------------+-----------------+");
 
             Console.WriteLine("\n  Press any key to continue...");
             Console.ReadKey();
@@ -133,12 +146,15 @@ namespace Project_LPR381.PostOptimality
 
         // -------------------------------------------------------------------------
         // METHOD: ShowRHSSensitivity
-        // Purpose: Calculates the minimum and maximum boundaries for our Right-Hand Side 
-        // limits (capacities). If we stay within this range, our current combination of variables stays optimal.
+        // Purpose: Shows how flexible our constraint limits are (e.g., material limits).
+        // What it does: Calculates the minimum and maximum boundaries for our Right-Hand Side 
+        // limits (capacities). If we stay within this range, our current strategy stays optimal.
+        // How it works: Loops through every active row and delegates the actual math 
+        // to the CalculateRHSRange helper function.
         // -------------------------------------------------------------------------
         private void ShowRHSSensitivity()
         {
-            Console.Clear(); // Clears screen
+            Console.Clear();
             Console.ForegroundColor = ConsoleColor.Cyan;
             Console.WriteLine("\n═══════════════════════════════════════════════════════════");
             Console.WriteLine("                RHS SENSITIVITY ANALYSIS                   ");
@@ -152,23 +168,26 @@ namespace Project_LPR381.PostOptimality
 
             Console.WriteLine("\n  Allowable range for RHS values before the optimal basis changes.\n");
 
-            Console.WriteLine($"  {"Constraint",-15} {"Current RHS",-15} {"Allowable ↓",-15} {"Allowable ↑",-15}");
-            Console.WriteLine("  ───────────────────────────────────────────────────────────────────");
+            Console.WriteLine("  +-----------------+-----------------+-----------------+-----------------+");
+            Console.WriteLine("  | Constraint      |     Current RHS |     Allowable ↓ |     Allowable ↑ |");
+            Console.WriteLine("  +-----------------+-----------------+-----------------+-----------------+");
 
-            // Loop through each active constraint row to test its limits
             for (int i = 1; i < rows; i++)
             {
                 string rowHeader = optimalState.RowHeaders[i];
                 double currentRHS = tableau[i, rhsCol];
 
-                double allowableDecrease;
-                double allowableIncrease;
+                // Let the math helper figure out the safe limits
+                CalculateRHSRange(tableau, i, out double allowableDecrease, out double allowableIncrease);
 
-                // Let the math helper figure out the limits
-                CalculateRHSRange(tableau, i, out allowableDecrease, out allowableIncrease);
+                // If it hits 1000.0, we just show infinity symbol for aesthetics
+                string decText = allowableDecrease == 1000.0 ? "∞" : allowableDecrease.ToString("F3");
+                string incText = allowableIncrease == 1000.0 ? "∞" : allowableIncrease.ToString("F3");
 
-                Console.WriteLine($"  {rowHeader,-15} {currentRHS,15:F4} {allowableDecrease,15:F4} {allowableIncrease,15:F4}");
+                Console.WriteLine($"  | {rowHeader,-15} | {currentRHS,15:F3} | {decText,15} | {incText,15} |");
             }
+
+            Console.WriteLine("  +-----------------+-----------------+-----------------+-----------------+");
 
             Console.WriteLine("\n  Press any key to continue...");
             Console.ReadKey();
@@ -177,6 +196,9 @@ namespace Project_LPR381.PostOptimality
         // -------------------------------------------------------------------------
         // HELPER METHOD: CalculateRHSRange
         // Purpose: The mathematical ratio test used to find the allowable RHS boundaries.
+        // How it works: It looks at every number in a row. Negative numbers tell us how 
+        // much we can increase the limit safely. Positive numbers tell us how much we 
+        // can decrease it. It keeps track of the smallest valid ratio to set the boundary.
         // -------------------------------------------------------------------------
         private void CalculateRHSRange(double[,] tableau, int rowIndex, out double allowableDecrease, out double allowableIncrease)
         {
@@ -189,7 +211,7 @@ namespace Project_LPR381.PostOptimality
             for (int j = 0; j < cols - 1; j++)
             {
                 double coeff = tableau[rowIndex, j];
-                if (Math.Abs(coeff) < 1e-10) continue; // Ignore zeroes
+                if (Math.Abs(coeff) < 1e-10) continue; // Ignore zeroes so we don't divide by zero
 
                 double rhsVal = tableau[rowIndex, rhsCol];
 
@@ -197,27 +219,27 @@ namespace Project_LPR381.PostOptimality
                 if (coeff < 0)
                 {
                     double ratio = -rhsVal / coeff;
-                    if (ratio > 0 && ratio < allowableIncrease)
-                        allowableIncrease = ratio;
+                    if (ratio > 0 && ratio < allowableIncrease) allowableIncrease = ratio;
                 }
                 // If the number is positive, it restricts how much we can DECREASE the RHS.
                 else if (coeff > 0)
                 {
                     double ratio = rhsVal / coeff;
-                    if (ratio > 0 && ratio < allowableDecrease)
-                        allowableDecrease = ratio;
+                    if (ratio > 0 && ratio < allowableDecrease) allowableDecrease = ratio;
                 }
             }
 
-            // If we didn't find a limit, we just display 1000 to represent "infinity"
+            // If no limits were found, set to 1000 to represent infinity
             if (allowableDecrease == double.MaxValue) allowableDecrease = 1000.0;
             if (allowableIncrease == double.MaxValue) allowableIncrease = 1000.0;
         }
 
         // -------------------------------------------------------------------------
         // METHOD: ShowObjectiveSensitivity
-        // Purpose: Calculates how much we can change our profit/cost margins (objective coefficients) 
-        // before we have to change our entire strategy (the basis).
+        // Purpose: Shows how flexible our profit margins are.
+        // What it does: Calculates how much we can change our profit/cost margins 
+        // (objective coefficients) before we have to change our entire strategy.
+        // How it works: Loops through every column variable and tests its flexibility.
         // -------------------------------------------------------------------------
         private void ShowObjectiveSensitivity()
         {
@@ -232,37 +254,40 @@ namespace Project_LPR381.PostOptimality
 
             Console.WriteLine("\n  Allowable range for objective coefficients before the optimal solution changes.\n");
 
-            Console.WriteLine($"  {"Variable",-12} {"Current",-12} {"Reduced Cost",-15} {"Basic?",-10} {"Allowable ↓",-15} {"Allowable ↑"}");
-            Console.WriteLine("  ───────────────────────────────────────────────────────────────────────────────");
+            Console.WriteLine("  +------------+------------+---------------+----------+---------------+---------------+");
+            Console.WriteLine("  | Variable   |    Current |  Reduced Cost | Basic?   |   Allowable ↓ |   Allowable ↑ |");
+            Console.WriteLine("  +------------+------------+---------------+----------+---------------+---------------+");
 
-            // Look at every variable column in the grid
             for (int j = 0; j < optimalState.ColumnHeaders.Length - 1; j++)
             {
                 string varName = optimalState.ColumnHeaders[j];
                 double reducedCost = tableau[0, j];
 
-                // Is this variable currently active in our solution?
+                // Check if this variable is currently part of our solution (basis)
                 bool isBasic = optimalState.RowHeaders.Contains(varName);
                 double currentCoeff = GetCoefficientForVariable(varName);
 
-                double allowableDecrease;
-                double allowableIncrease;
+                // Calculate the safety limits
+                CalculateObjectiveRange(j, isBasic, out double allowableDecrease, out double allowableIncrease);
 
-                // Let the math helper figure out the bounds
-                CalculateObjectiveRange(j, isBasic, out allowableDecrease, out allowableIncrease);
+                string incText = allowableIncrease == double.MaxValue ? "∞" : allowableIncrease.ToString("F3");
+                string decText = allowableDecrease == double.MaxValue ? "∞" : allowableDecrease.ToString("F3");
+                string basicText = isBasic ? "Yes" : "No";
 
-                // Format "infinity" nicely instead of showing a massive system number
-                string incText = allowableIncrease == double.MaxValue ? "∞" : allowableIncrease.ToString("F4");
-                string decText = allowableDecrease == double.MaxValue ? "∞" : allowableDecrease.ToString("F4");
-
-                Console.WriteLine($"  {varName,-12} {currentCoeff,12:F4} {reducedCost,15:F4} {(isBasic ? "Yes" : "No"),-10} {decText,15} {incText}");
+                Console.WriteLine($"  | {varName,-10} | {currentCoeff,10:F3} | {reducedCost,13:F3} | {basicText,-8} | {decText,13} | {incText,13} |");
             }
+
+            Console.WriteLine("  +------------+------------+---------------+----------+---------------+---------------+");
 
             Console.WriteLine("\n  Press any key to continue...");
             Console.ReadKey();
         }
 
-        // Helper just retrieves the original profit/cost for a specific variable
+        // -------------------------------------------------------------------------
+        // HELPER METHOD: GetCoefficientForVariable
+        // Purpose: Retrieves the original profit/cost for a specific variable from the start.
+        // What it does: Remembers what the original model started with so we can display it.
+        // -------------------------------------------------------------------------
         private double GetCoefficientForVariable(string variableName)
         {
             if (variableName.StartsWith("x"))
@@ -272,12 +297,16 @@ namespace Project_LPR381.PostOptimality
                 if (index >= 0 && index < originalModel.ObjectiveCoefficients.Count)
                     return originalModel.ObjectiveCoefficients[index];
             }
-            return 0;
+            return 0; // Slacks and excess variables always have 0 original profit
         }
 
         // -------------------------------------------------------------------------
         // HELPER METHOD: CalculateObjectiveRange
-        // Purpose: The mathematical ratio test used to find the allowable profit/cost boundaries.
+        // Purpose: The mathematical ratio test used to find allowable profit boundaries.
+        // How it works: Variables NOT in our solution have infinite flexibility to become 
+        // worse (less profitable), but limited flexibility to become better before we swap them in.
+        // Variables IN our solution require a ratio test against every non-basic column 
+        // to see when another variable would become more attractive to swap in.
         // -------------------------------------------------------------------------
         private void CalculateObjectiveRange(int colIndex, bool isBasic, out double allowableDecrease, out double allowableIncrease)
         {
@@ -285,9 +314,9 @@ namespace Project_LPR381.PostOptimality
             allowableDecrease = double.MaxValue;
             allowableIncrease = double.MaxValue;
 
-            // If the variable IS NOT in our solution, changing its profit only affects its own reduced cost.
             if (!isBasic)
             {
+                // Non-basic variables calculate limits based solely on their own reduced cost.
                 double reducedCost = tableau[0, colIndex];
                 if (originalModel.OptimizationType == "max")
                 {
@@ -300,9 +329,9 @@ namespace Project_LPR381.PostOptimality
                     if (allowableIncrease < 0) allowableIncrease = 0;
                 }
             }
-            // If the variable IS in our solution, changing its profit affects the ENTIRE Z-row!
             else
             {
+                // Basic variables must check ratios across the entire row
                 int rowIndex = Array.IndexOf(optimalState.RowHeaders, optimalState.ColumnHeaders[colIndex]);
                 if (rowIndex != -1)
                 {
@@ -340,8 +369,10 @@ namespace Project_LPR381.PostOptimality
 
         // -------------------------------------------------------------------------
         // METHOD: ChangeRHS
-        // Purpose: Interactively lets the user tweak an RHS value (capacity limit) 
+        // Purpose: Interactively lets the user tweak an RHS limit (like adding 10 hours)
         // to see if the current math model survives or breaks.
+        // How it works: You input the change, and the math projects whether any current
+        // resources would fall below 0. If they do, the solution breaks (infeasible).
         // -------------------------------------------------------------------------
         private void ChangeRHS()
         {
@@ -360,7 +391,7 @@ namespace Project_LPR381.PostOptimality
             Console.WriteLine("\n  Current RHS values:");
             for (int i = 1; i < rows; i++)
             {
-                Console.WriteLine($"    {optimalState.RowHeaders[i],-10}: {tableau[i, rhsCol],15:F4}");
+                Console.WriteLine($"    {optimalState.RowHeaders[i],-10}: {tableau[i, rhsCol],15:F3}");
             }
 
             Console.Write("\n  Enter constraint number to change (1 - {0}): ", rows - 1);
@@ -385,7 +416,7 @@ namespace Project_LPR381.PostOptimality
             }
 
             double oldRHS = tableau[rowIndex, rhsCol];
-            Console.WriteLine($"\n  Old RHS: {oldRHS:F4}, New RHS: {newRHS:F4}");
+            Console.WriteLine($"\n  Old RHS: {oldRHS:F3}, New RHS: {newRHS:F3}");
 
             // Verify if the mathematical feasibility holds up (i.e. nothing becomes negative)
             bool feasible = true;
@@ -393,7 +424,9 @@ namespace Project_LPR381.PostOptimality
             {
                 if (i == rowIndex) continue;
                 double rhsVal = tableau[i, rhsCol] + newRHS * tableau[i, rhsCol] / tableau[rowIndex, rhsCol];
-                if (rhsVal < -1e-7) // If RHS becomes negative, it's infeasible!
+
+                // If projecting this change pushes any basic variable below 0, it breaks!
+                if (rhsVal < -1e-7)
                 {
                     feasible = false;
                     break;
@@ -420,8 +453,11 @@ namespace Project_LPR381.PostOptimality
 
         // -------------------------------------------------------------------------
         // METHOD: AddNewActivity
-        // Purpose: Analyzes if adding a completely new variable (activity) is worth it 
-        // mathematically. It checks if the "Reduced Cost" proves it would be profitable.
+        // Purpose: Checks if adding a totally new product (variable) is worth doing.
+        // What it does: Calculates the "Reduced Cost" of a theoretical new item.
+        // How it works: Compares the potential profit of the new item against the 
+        // Shadow Prices (value) of the resources it would consume. If profit > cost, 
+        // it tells you to go ahead and make it!
         // -------------------------------------------------------------------------
         private void AddNewActivity()
         {
@@ -463,22 +499,24 @@ namespace Project_LPR381.PostOptimality
             // In basic OR, we just check if the new reduced cost is favorable.
             double reducedCost = objCoeff;
             bool wouldImprove;
+
+            // Positive reduced cost is good for maximize, negative is good for minimize.
             if (originalModel.OptimizationType == "max")
-                wouldImprove = reducedCost > 0.001; // Positive is good for maximize
+                wouldImprove = reducedCost > 0.001;
             else
-                wouldImprove = reducedCost < -0.001; // Negative is good for minimize
+                wouldImprove = reducedCost < -0.001;
 
             if (wouldImprove)
             {
                 Console.ForegroundColor = ConsoleColor.Green;
-                Console.WriteLine($"\n  Reduced cost = {reducedCost:F4}");
+                Console.WriteLine($"\n  Reduced cost = {reducedCost:F3}");
                 Console.WriteLine("  Adding this variable would improve the objective!");
                 Console.ResetColor();
             }
             else
             {
                 Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.WriteLine($"\n  Reduced cost = {reducedCost:F4}");
+                Console.WriteLine($"\n  Reduced cost = {reducedCost:F3}");
                 Console.WriteLine("  Adding this variable would NOT improve the objective.");
                 Console.ResetColor();
             }
@@ -490,6 +528,8 @@ namespace Project_LPR381.PostOptimality
         // -------------------------------------------------------------------------
         // METHOD: ShowFullReport
         // Purpose: Combines all sensitivity metrics into a single screen view.
+        // What it does: Runs the Shadow Price, RHS Range, and Objective Range 
+        // analysis methods in a row, pausing between each so the user can read them.
         // -------------------------------------------------------------------------
         private void ShowFullReport()
         {
@@ -501,18 +541,16 @@ namespace Project_LPR381.PostOptimality
             Console.ResetColor();
 
             Console.WriteLine($"\n  OPTIMAL SOLUTION:");
-            Console.WriteLine($"    Z* = {optimalState.OptimalZ:F4}");
+            Console.WriteLine($"    Z* = {optimalState.OptimalZ:F3}");
             foreach (var varValue in optimalState.VariableValues)
             {
-                Console.WriteLine($"    {varValue.Key} = {varValue.Value:F4}");
+                Console.WriteLine($"    {varValue.Key} = {varValue.Value:F3}");
             }
 
             Console.WriteLine("\n  ──────────────────────────────────────────────────────────");
-
-            // We use read key pauses here so the user isn't instantly flooded with numbers
             Console.WriteLine("  [Press any key to view Shadow Prices...]");
             Console.ReadKey();
-            ShowShadowPrices(); // Console.Clear() fires inside here!
+            ShowShadowPrices();
 
             Console.WriteLine("  [Press any key to view RHS Sensitivity...]");
             Console.ReadKey();

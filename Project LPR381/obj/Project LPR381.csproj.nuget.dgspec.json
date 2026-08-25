@@ -1,31 +1,38 @@
 {
   "format": 1,
   "restore": {
-    "/Users/roebssie/Library/CloudStorage/OneDrive-belgiumcampus.ac.za/Belgium Campus/2026/LPR381/Project/Project-LPR381/Project LPR381/Project LPR381.csproj": {}
+    "C:\\Users\\Tobie\\Documents\\University\\LPR381\\Project\\Project-LPR381\\Project LPR381\\Project LPR381.csproj": {}
   },
   "projects": {
-    "/Users/roebssie/Library/CloudStorage/OneDrive-belgiumcampus.ac.za/Belgium Campus/2026/LPR381/Project/Project-LPR381/Project LPR381/Project LPR381.csproj": {
+    "C:\\Users\\Tobie\\Documents\\University\\LPR381\\Project\\Project-LPR381\\Project LPR381\\Project LPR381.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/Users/roebssie/Library/CloudStorage/OneDrive-belgiumcampus.ac.za/Belgium Campus/2026/LPR381/Project/Project-LPR381/Project LPR381/Project LPR381.csproj",
+        "projectUniqueName": "C:\\Users\\Tobie\\Documents\\University\\LPR381\\Project\\Project-LPR381\\Project LPR381\\Project LPR381.csproj",
         "projectName": "Project LPR381",
-        "projectPath": "/Users/roebssie/Library/CloudStorage/OneDrive-belgiumcampus.ac.za/Belgium Campus/2026/LPR381/Project/Project-LPR381/Project LPR381/Project LPR381.csproj",
-        "packagesPath": "/Users/roebssie/.nuget/packages/",
-        "outputPath": "/Users/roebssie/Library/CloudStorage/OneDrive-belgiumcampus.ac.za/Belgium Campus/2026/LPR381/Project/Project-LPR381/Project LPR381/obj/",
+        "projectPath": "C:\\Users\\Tobie\\Documents\\University\\LPR381\\Project\\Project-LPR381\\Project LPR381\\Project LPR381.csproj",
+        "packagesPath": "C:\\Users\\Tobie\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\Tobie\\Documents\\University\\LPR381\\Project\\Project-LPR381\\Project LPR381\\obj\\",
         "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        ],
         "configFilePaths": [
-          "/Users/roebssie/.nuget/NuGet/NuGet.Config"
+          "C:\\Users\\Tobie\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
-          "net8.0"
+          "net8.0-windows"
         ],
         "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "C:\\Program Files\\dotnet\\library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
-          "net8.0": {
-            "framework": "net8.0",
-            "targetAlias": "net8.0",
+          "net8.0-windows": {
+            "framework": "net8.0-windows7.0",
+            "targetAlias": "net8.0-windows",
             "projectReferences": {}
           }
         },
@@ -42,9 +49,9 @@
         "SdkAnalysisLevel": "10.0.400"
       },
       "frameworks": {
-        "net8.0": {
-          "framework": "net8.0",
-          "targetAlias": "net8.0",
+        "net8.0-windows": {
+          "framework": "net8.0-windows7.0",
+          "targetAlias": "net8.0-windows",
           "imports": [
             "net461",
             "net462",
@@ -62,20 +69,27 @@
               "version": "[8.0.30, 8.0.30]"
             },
             {
-              "name": "Microsoft.NETCore.App.Host.osx-arm64",
+              "name": "Microsoft.NETCore.App.Host.win-x64",
               "version": "[8.0.30, 8.0.30]"
             },
             {
               "name": "Microsoft.NETCore.App.Ref",
+              "version": "[8.0.30, 8.0.30]"
+            },
+            {
+              "name": "Microsoft.WindowsDesktop.App.Ref",
               "version": "[8.0.30, 8.0.30]"
             }
           ],
           "frameworkReferences": {
             "Microsoft.NETCore.App": {
               "privateAssets": "all"
+            },
+            "Microsoft.WindowsDesktop.App.WindowsForms": {
+              "privateAssets": "none"
             }
           },
-          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/10.0.400/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.400/PortableRuntimeIdentifierGraph.json"
         }
       }
     }
