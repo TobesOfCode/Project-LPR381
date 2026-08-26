@@ -97,15 +97,13 @@ namespace Project_LPR381.PostOptimality
             int numDecisionVars = originalModel.ObjectiveCoefficients.Count;
             int numConstraints = originalModel.Constraints.Count;
 
-            Console.WriteLine("\n  Shadow Price = -Z_row[slack_column]\n");
-
             Console.WriteLine($"  {"Constraint",-20} {"Shadow Price",-15}");
             Console.WriteLine("  ──────────────────────────────────────────────────────────");
 
             for (int i = 0; i < numConstraints; i++)
             {
                 int slackCol = numDecisionVars + i;
-                double shadowPrice = -tableau[0, slackCol];
+                double shadowPrice = tableau[0, slackCol];
                 Console.WriteLine($"  Constraint {i + 1,-12} {shadowPrice,15:F4}");
             }
 
@@ -454,4 +452,5 @@ namespace Project_LPR381.PostOptimality
             Console.ReadKey();
         }
     }
+
 }
