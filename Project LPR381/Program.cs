@@ -1,4 +1,5 @@
-﻿using System;
+﻿// File: Program.cs
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
@@ -11,42 +12,56 @@ using Project_LPR381.PostOptimality;
 
 namespace LPR381
 {
-    // Purpose: Enumerates selectable menu actions for the console application.
-    // Workload Plan: Organized neatly by team member responsibilities.
+    // -------------------------------------------------------------------------
+    // ENUM: MenuOption
+    // Purpose: Acts as the master directory for the console dashboard.
+    // What it does: Assigns a unique numerical identifier to each user action,
+    // making the input handling structured, safe, and easily extensible.
+    // -------------------------------------------------------------------------
     public enum MenuOption
     {
         Exit = 0,
 
-        // --- MEMBER 1: CORE ARCHITECT & I/O ---
+        // --- LAYER 2 ALGORITHMIC SOLVERS ---
         StandardPrimalSimplex = 1,
         RevisedPrimalSimplex = 2,
+        BranchAndBoundSimplex = 3,
+        Knapsack = 4,
+        CuttingPlane = 5,
 
-        // --- MEMBER 2: TREE & NODE SPECIALIST ---
-        PlaceholderModule = 3, // Reserved for Branch & Bound Simplex
+        // --- POST-OPTIMALITY & DUALITY ---
+        PostOptimality = 6,
 
-        // --- MEMBER 3: IP & KNAPSACK ENGINEER ---
-        Knapsack = 4, // Reserved for Branch & Bound Knapsack
-        CuttingPlane = 5, // Reserved for Gomory Cutting Plane
+        // --- SYSTEM / FILE MANAGEMENT ---
+        ManageFile = 7,
 
-        // --- MEMBER 4: POST-OPTIMALITY ANALYST ---
-        PostOptimality = 6, // Reserved for Sensitivity Analysis & Duality
-
-        // --- SYSTEM / UTILITY ---
-        ManageFile = 7
+        // --- BONUS CRITERIA (10 MARKS) ---
+        NonLinearBonus = 8
     }
 
     class Program
     {
+        // -------------------------------------------------------------------------
+        // METHOD: Main
+        // Purpose: Entry point for the executable (`solve.exe`).
+        // What it does: Sets up the console environment, initializes memory states,
+        // and coordinates the primary dashboard loop.
+        // How it works: Loops continuously until the user selects Option 0 (Exit).
+        // -------------------------------------------------------------------------
         [STAThread]
         static void Main(string[] args)
         {
+            // Set console appearance and UTF-8 encoding for clean ASCII and box characters
+            Console.Clear();
             Console.Title = "LPR381 Solver Engine v1.0 - Operations Research";
             Console.OutputEncoding = Encoding.UTF8;
             Console.BackgroundColor = ConsoleColor.Black;
             Console.Clear();
 
+            // Main loop control flag
             bool keepRunning = true;
 
+            // Application Memory States: Track active file and calculated optimal state
             string loadedFilePath = "None";
             bool isFileImported = false;
             LinearModel currentModel = null;
@@ -56,6 +71,7 @@ namespace LPR381
 
             while (keepRunning)
             {
+                // Refresh dashboard header and menu options
                 Console.Clear();
                 DrawHeader(isFileImported, loadedFilePath, isOptimalStateSaved);
 
@@ -68,23 +84,30 @@ namespace LPR381
                 Console.WriteLine("  4. Branch & Bound Knapsack");
                 Console.WriteLine("  5. Cutting Plane Algorithm");
                 Console.WriteLine("  6. Post-Optimality & Sensitivity");
+                Console.WriteLine("  8. Non-Linear Programming Solver");
                 Console.WriteLine("  0. Exit System");
                 Console.WriteLine("  --------------------------------------------------------------");
 
                 Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.Write("\n  Enter command choice [0-7]: ");
+                Console.Write("\n  Enter command choice [0-8]: ");
                 Console.ResetColor();
 
                 string input = Console.ReadLine();
 
+                // Safely parse the user's input to prevent application crashes
                 if (Enum.TryParse(input, out MenuOption choice))
                 {
                     Console.Clear();
+
                     switch (choice)
                     {
+                        // =============================================================
+                        // OPTION 7: FILE MANAGEMENT & INGESTION (LAYER 1)
+                        // =============================================================
                         case MenuOption.ManageFile:
                             DrawSubHeader("FILE INGESTION & DATA INSPECTION (LAYER 1)");
 
+                            // If a file is already loaded, allow inspection or removal
                             if (isFileImported)
                             {
                                 Console.ForegroundColor = ConsoleColor.Yellow;
@@ -119,6 +142,7 @@ namespace LPR381
                                 else if (fileAction != "1") break;
                             }
 
+                            // Open Windows OpenFileDialog to browse for .txt input files
                             Console.ForegroundColor = ConsoleColor.Gray;
                             Console.WriteLine("  [INFO] Opening Windows File Explorer dialogue...");
                             Console.ResetColor();
@@ -141,6 +165,7 @@ namespace LPR381
                                 break;
                             }
 
+                            // Ingest and tokenize the model via Layer 1 Parser
                             try
                             {
                                 currentModel = Parser.ScanFile(inputPath);
@@ -163,18 +188,15 @@ namespace LPR381
                             }
                             break;
 
-                        // ==========================================
-                        // OPTION 1: STANDARD PRIMAL SIMPLEX
-                        // ==========================================
+                        // =============================================================
+                        // OPTION 1: STANDARD PRIMAL SIMPLEX (LAYER 2 & 3)
+                        // =============================================================
                         case MenuOption.StandardPrimalSimplex:
-                            DrawSubHeader("STANDARD PRIMAL SIMPLEX SOLVER");
+                            DrawSubHeader("STANDARD PRIMAL SIMPLEX SOLVER (LAYER 2 & 3)");
 
                             if (!isFileImported)
                             {
-                                Console.ForegroundColor = ConsoleColor.Red;
-                                Console.WriteLine("  [!] No linear model loaded in memory.");
-                                Console.WriteLine("  Please select Option 7 first to upload an input file.");
-                                Console.ResetColor();
+                                ShowNoModelError();
                                 break;
                             }
 
@@ -194,7 +216,7 @@ namespace LPR381
                             catch (InvalidOperationException ioe)
                             {
                                 Console.ForegroundColor = ConsoleColor.Red;
-                                Console.WriteLine($"\n  [MODEL EXCEPTION] {ioe.Message}");
+                                Console.WriteLine($"\n  [MODEL EXCEPTION]\n{ioe.Message}");
                                 Console.ResetColor();
                             }
                             catch (Exception ex)
@@ -205,18 +227,15 @@ namespace LPR381
                             }
                             break;
 
-                        // ==========================================
-                        // OPTION 2: REVISED PRIMAL SIMPLEX
-                        // ==========================================
+                        // =============================================================
+                        // OPTION 2: REVISED PRIMAL SIMPLEX (LAYER 2 & 3)
+                        // =============================================================
                         case MenuOption.RevisedPrimalSimplex:
                             DrawSubHeader("REVISED PRIMAL SIMPLEX SOLVER (LAYER 2 & 3)");
 
                             if (!isFileImported)
                             {
-                                Console.ForegroundColor = ConsoleColor.Red;
-                                Console.WriteLine("  [!] No linear model loaded in memory.");
-                                Console.WriteLine("  Please select Option 7 first to upload an input file.");
-                                Console.ResetColor();
+                                ShowNoModelError();
                                 break;
                             }
 
@@ -224,17 +243,80 @@ namespace LPR381
                             {
                                 ExplainSimplexProcess(currentModel, true);
 
-                                // Instantiate our brand new Revised Engine instead!
                                 RevisedSimplex engine = new RevisedSimplex();
                                 engine.InitializeModel(currentModel);
                                 engine.Solve();
 
-                                // It still returns the exact same care package object
                                 optimalState = engine.GetResult();
                                 isOptimalStateSaved = true;
 
-                                // Print and save using the exact same flow
                                 PrintAndExportResults(loadedFilePath, optimalState, engine.IterationLog.ToString());
+                            }
+                            catch (InvalidOperationException ioe)
+                            {
+                                Console.ForegroundColor = ConsoleColor.Red;
+                                Console.WriteLine($"\n  [MODEL EXCEPTION]\n{ioe.Message}");
+                                Console.ResetColor();
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.ForegroundColor = ConsoleColor.Red;
+                                Console.WriteLine($"\n  [ENGINE ERROR] {ex.Message}");
+                                Console.ResetColor();
+                            }
+                            break;
+
+                        // =============================================================
+                        // OPTION 3: BRANCH & BOUND SIMPLEX (INTEGER PROGRAMMING)
+                        // =============================================================
+                        case MenuOption.BranchAndBoundSimplex:
+                            DrawSubHeader("BRANCH & BOUND SIMPLEX");
+
+                            if (!isFileImported)
+                            {
+                                ShowNoModelError();
+                                break;
+                            }
+
+                            try
+                            {
+                                // Detect integer or binary sign restrictions
+                                bool[] integerVariables = new bool[currentModel.SignRestrictions.Count];
+                                bool hasIntegerRestriction = false;
+
+                                for (int i = 0; i < currentModel.SignRestrictions.Count; i++)
+                                {
+                                    string restriction = currentModel.SignRestrictions[i].Trim().ToLower();
+                                    integerVariables[i] = restriction == "int" || restriction == "bin";
+                                    if (integerVariables[i]) hasIntegerRestriction = true;
+                                }
+
+                                if (!hasIntegerRestriction)
+                                {
+                                    Console.ForegroundColor = ConsoleColor.Yellow;
+                                    Console.WriteLine("  [!] No integer ('int') or binary ('bin') restrictions found in the text file.");
+                                    Console.WriteLine("  Branch & Bound requires integer variables. Please run Option 1 instead.");
+                                    Console.ResetColor();
+                                    break;
+                                }
+
+                                Console.ForegroundColor = ConsoleColor.DarkCyan;
+                                Console.WriteLine($"  Model loaded: {currentModel.ObjectiveCoefficients.Count} variables, {currentModel.Constraints.Count} constraints.");
+                                Console.WriteLine("  Integer-restricted variables:");
+                                for (int i = 0; i < integerVariables.Length; i++)
+                                {
+                                    if (integerVariables[i])
+                                    {
+                                        Console.WriteLine($"    x{i + 1} -> {currentModel.SignRestrictions[i]}");
+                                    }
+                                }
+                                Console.ResetColor();
+
+                                BranchAndBound solver = new BranchAndBound();
+                                optimalState = solver.Solve(currentModel, integerVariables);
+                                isOptimalStateSaved = true;
+
+                                PrintAndExportResults(loadedFilePath, optimalState, solver.IterationLog.ToString());
                             }
                             catch (InvalidOperationException ioe)
                             {
@@ -245,31 +327,80 @@ namespace LPR381
                             catch (Exception ex)
                             {
                                 Console.ForegroundColor = ConsoleColor.Red;
-                                Console.WriteLine($"\n  [ENGINE ERROR] {ex.Message}");
+                                Console.WriteLine($"\n  [BRANCH & BOUND ERROR] {ex.Message}");
                                 Console.ResetColor();
                             }
                             break;
 
-                        case MenuOption.PlaceholderModule:
-                            DrawSubHeader("BRANCH & BOUND SIMPLEX (SLOT 3)");
-                            Console.ForegroundColor = ConsoleColor.Yellow;
-                            Console.WriteLine("  [ASSIGNMENT NOTE] Reserved for Member 2 (Tree & Node Specialist).");
-                            Console.WriteLine("  Will utilize SimplexResult DTO from Layer 2 to generate sub-problem nodes.");
-                            Console.ResetColor();
-                            break;
+                        // =============================================================
+                        // OPTION 4: BRANCH & BOUND KNAPSACK
+                        // =============================================================
+                        case MenuOption.Knapsack:
+                            DrawSubHeader("BRANCH & BOUND KNAPSACK");
 
-                        // ==========================================
-                        // OPTION 6: POST-OPTIMALITY & SENSITIVITY
-                        // ==========================================
-                        case MenuOption.PostOptimality:
-                            DrawSubHeader("POST-OPTIMALITY & SENSITIVITY ANALYSIS (MEMBER 4)");
+                            if (!isFileImported)
+                            {
+                                ShowNoModelError();
+                                break;
+                            }
 
-                            if (!isOptimalStateSaved || optimalState == null)
+                            try
+                            {
+                                Knapsack knapsackSolver = new Knapsack();
+                                optimalState = knapsackSolver.Solve(currentModel);
+                                isOptimalStateSaved = true;
+
+                                PrintAndExportResults(loadedFilePath, optimalState, knapsackSolver.IterationLog.ToString());
+                            }
+                            catch (InvalidOperationException ioe)
                             {
                                 Console.ForegroundColor = ConsoleColor.Red;
-                                Console.WriteLine("  [!] No optimal solution found yet.");
-                                Console.WriteLine("  Please solve a model first using options 1 or 2.");
+                                Console.WriteLine($"\n  [MODEL EXCEPTION] {ioe.Message}");
                                 Console.ResetColor();
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.ForegroundColor = ConsoleColor.Red;
+                                Console.WriteLine($"\n  [KNAPSACK ERROR] {ex.Message}");
+                                Console.ResetColor();
+                            }
+                            break;
+
+                        // =============================================================
+                        // OPTION 5: GOMORY CUTTING PLANE ALGORITHM
+                        // =============================================================
+                        case MenuOption.CuttingPlane:
+                            DrawSubHeader("GOMORY CUTTING PLANE ALGORITHM");
+
+                            if (!isFileImported)
+                            {
+                                ShowNoModelError();
+                                break;
+                            }
+
+                            try
+                            {
+                                CuttingPlane cpSolver = new CuttingPlane();
+                                optimalState = cpSolver.Solve(currentModel);
+                                isOptimalStateSaved = true;
+
+                                PrintAndExportResults(loadedFilePath, optimalState, cpSolver.IterationLog.ToString());
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.ForegroundColor = ConsoleColor.Red;
+                                Console.WriteLine($"\n  [CUTTING PLANE ERROR] {ex.Message}");
+                                Console.ResetColor();
+                            }
+                            break;
+
+                        // =============================================================
+                        // OPTION 6: POST-OPTIMALITY (SENSITIVITY ANALYSIS & DUALITY)
+                        // =============================================================
+                        case MenuOption.PostOptimality:
+                            if (!isFileImported)
+                            {
+                                ShowNoModelError();
                                 break;
                             }
 
@@ -281,7 +412,7 @@ namespace LPR381
                                     Console.Clear();
                                     Console.ForegroundColor = ConsoleColor.Cyan;
                                     Console.WriteLine("\n  ╔════════════════════════════════════════════════════════╗");
-                                    Console.WriteLine("  ║          POST-OPTIMALITY & SENSITIVITY                ║");
+                                    Console.WriteLine("  ║          POST-OPTIMALITY & SENSITIVITY                 ║");
                                     Console.WriteLine("  ╚════════════════════════════════════════════════════════╝");
                                     Console.ResetColor();
 
@@ -300,19 +431,34 @@ namespace LPR381
                                     switch (postOptInput)
                                     {
                                         case "1":
-                                            var sensitivity = new SensitivityAnalysis(optimalState, currentModel);
-                                            sensitivity.ShowMenu();
+                                            if (!isOptimalStateSaved || optimalState == null)
+                                            {
+                                                Console.ForegroundColor = ConsoleColor.Red;
+                                                Console.WriteLine("\n  [!] Optimal state not found!");
+                                                Console.WriteLine("  Please run a Solver (Option 1, 2, 3, 4, or 5) first.");
+                                                Console.ResetColor();
+                                                Console.WriteLine("\n  Press any key to continue...");
+                                                Console.ReadKey();
+                                            }
+                                            else
+                                            {
+                                                var sensitivity = new SensitivityAnalysis(optimalState, currentModel);
+                                                sensitivity.ShowMenu();
+                                            }
                                             break;
+
                                         case "2":
                                             var duality = new Duality(currentModel);
                                             duality.ShowMenu();
                                             break;
+
                                         case "0":
                                             showPostOptMenu = false;
                                             break;
+
                                         default:
                                             Console.ForegroundColor = ConsoleColor.Red;
-                                            Console.WriteLine("\n  [!] Invalid option.");
+                                            Console.WriteLine("\n  [!] Invalid option. Please select 0, 1, or 2.");
                                             Console.ResetColor();
                                             Console.ReadKey();
                                             break;
@@ -327,6 +473,71 @@ namespace LPR381
                             }
                             break;
 
+                        // =============================================================
+                        // OPTION 8: NON-LINEAR OPTIMIZATION (10 MARKS BONUS)
+                        // =============================================================
+                        case MenuOption.NonLinearBonus:
+                            DrawSubHeader("GENERAL NON-LINEAR OPTIMIZATION SOLVER (10 MARKS BONUS)");
+                            Console.WriteLine("  This module solves ANY custom non-linear function using Finite-Difference Gradient Descent.\n");
+                            Console.WriteLine("  [1] Solve project default example: Minimize f(x) = x^2");
+                            Console.WriteLine("  [2] Enter your own custom non-linear equation (e.g. x^3 - 4*x + 2, x^4 - 2*x^2, sin(x) + x^2)");
+                            Console.Write("\n  Select an option [1-2]: ");
+
+                            string nlChoice = Console.ReadLine()?.Trim();
+                            NonLinearSolver solverNL = new NonLinearSolver();
+
+                            if (nlChoice == "2")
+                            {
+                                try
+                                {
+                                    Console.Write("\n  Enter equation f(x): ");
+                                    string customExpr = Console.ReadLine();
+
+                                    Console.Write("  Goal (min / max): ");
+                                    bool isMax = Console.ReadLine()?.Trim().ToLower() == "max";
+
+                                    Console.Write("  Enter initial starting point x_0 (e.g. 3.0): ");
+                                    double startX = double.TryParse(Console.ReadLine(), out double parsedX) ? parsedX : 3.0;
+
+                                    Console.Write("  Enter learning rate alpha (e.g. 0.05): ");
+                                    double alpha = double.TryParse(Console.ReadLine(), out double parsedAlpha) ? parsedAlpha : 0.05;
+
+                                    Console.Write("  Apply boundary constraints? (Y/N): ");
+                                    bool hasBounds = Console.ReadLine()?.Trim().ToUpper() == "Y";
+
+                                    double minBound = double.NegativeInfinity;
+                                    double maxBound = double.PositiveInfinity;
+
+                                    if (hasBounds)
+                                    {
+                                        Console.Write("  Enter lower bound (or -inf): ");
+                                        string minStr = Console.ReadLine();
+                                        if (double.TryParse(minStr, out double parsedMin)) minBound = parsedMin;
+
+                                        Console.Write("  Enter upper bound (or inf): ");
+                                        string maxStr = Console.ReadLine();
+                                        if (double.TryParse(maxStr, out double parsedMax)) maxBound = parsedMax;
+                                    }
+
+                                    solverNL.SolveExpression(customExpr, isMax, startX, alpha, 50, minBound, maxBound);
+                                }
+                                catch (Exception ex)
+                                {
+                                    Console.ForegroundColor = ConsoleColor.Red;
+                                    Console.WriteLine($"\n  [INPUT ERROR] {ex.Message}");
+                                    Console.ResetColor();
+                                }
+                            }
+                            else
+                            {
+                                // Solves project example f(x) = x^2, minimizing from initial x_0 = 4.0
+                                solverNL.SolveExpression("x^2", false, startingX: 4.0, learningRate: 0.1);
+                            }
+                            break;
+
+                        // =============================================================
+                        // OPTION 0: GRACEFUL SHUTDOWN
+                        // =============================================================
                         case MenuOption.Exit:
                             Console.ForegroundColor = ConsoleColor.Cyan;
                             Console.WriteLine("\n  Terminating LPR381 Solver Engine. Goodbye!\n");
@@ -336,7 +547,7 @@ namespace LPR381
 
                         default:
                             Console.ForegroundColor = ConsoleColor.Red;
-                            Console.WriteLine("\n  [!] Module under active development or invalid option entered.");
+                            Console.WriteLine("\n  [!] Invalid option entered.");
                             Console.ResetColor();
                             break;
                     }
@@ -344,10 +555,11 @@ namespace LPR381
                 else
                 {
                     Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine("\n  [!] Invalid input. Please enter a valid menu digit (0-7).");
+                    Console.WriteLine("\n  [!] Invalid input. Please enter a valid menu digit (0-8).");
                     Console.ResetColor();
                 }
 
+                // Pause before refreshing dashboard
                 if (keepRunning)
                 {
                     Console.ForegroundColor = ConsoleColor.DarkGray;
@@ -357,7 +569,22 @@ namespace LPR381
             }
         }
 
-        // Helper: Unifies the printing and exporting process to avoid repeated code.
+        // -------------------------------------------------------------------------
+        // HELPER METHOD: ShowNoModelError
+        // Purpose: Standardized warning when an algorithm is run without a loaded file.
+        // -------------------------------------------------------------------------
+        static void ShowNoModelError()
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine("  [!] No linear model loaded in memory.");
+            Console.WriteLine("  Please select Option 7 first to upload an input file.");
+            Console.ResetColor();
+        }
+
+        // -------------------------------------------------------------------------
+        // HELPER METHOD: PrintAndExportResults
+        // Purpose: Displays the optimal solution summary and triggers Layer 3 export.
+        // -------------------------------------------------------------------------
         static void PrintAndExportResults(string loadedFilePath, SimplexResult optimalState, string iterationsLog)
         {
             Console.ForegroundColor = ConsoleColor.Green;
@@ -366,6 +593,7 @@ namespace LPR381
             Console.WriteLine("  ==============================================================");
             Console.WriteLine($"   Optimal Objective (Z) : {optimalState.OptimalZ.ToString("F3", System.Globalization.CultureInfo.InvariantCulture)}");
             Console.WriteLine("   Optimal Variable Vector:");
+
             foreach (var variable in optimalState.VariableValues)
             {
                 Console.WriteLine($"     {variable.Key,-6} = {variable.Value.ToString("F3", System.Globalization.CultureInfo.InvariantCulture),10}");
@@ -373,6 +601,7 @@ namespace LPR381
             Console.WriteLine("  ==============================================================");
             Console.ResetColor();
 
+            // Export to Downloads folder via Layer 3 Exporter
             string savedFilePath = Exporter.ExportResult(loadedFilePath, optimalState, iterationsLog);
 
             Console.ForegroundColor = ConsoleColor.Green;
@@ -390,6 +619,10 @@ namespace LPR381
             }
         }
 
+        // -------------------------------------------------------------------------
+        // HELPER METHOD: DrawHeader
+        // Purpose: Renders the dynamic top header bar displaying active model & state.
+        // -------------------------------------------------------------------------
         static void DrawHeader(bool isImported, string filePath, bool isOptimalGenerated)
         {
             Console.ForegroundColor = ConsoleColor.Cyan;
@@ -431,6 +664,10 @@ namespace LPR381
             Console.WriteLine("  +------------------------------------------------------------+");
         }
 
+        // -------------------------------------------------------------------------
+        // HELPER METHOD: DrawSubHeader
+        // Purpose: Prints a standardized title header for individual sub-screens.
+        // -------------------------------------------------------------------------
         static void DrawSubHeader(string title)
         {
             Console.ForegroundColor = ConsoleColor.Green;
@@ -440,6 +677,10 @@ namespace LPR381
             Console.ResetColor();
         }
 
+        // -------------------------------------------------------------------------
+        // HELPER METHOD: ExplainSimplexProcess
+        // Purpose: Displays an educational trace summary before Simplex execution.
+        // -------------------------------------------------------------------------
         static void ExplainSimplexProcess(LinearModel model, bool isRevised)
         {
             Console.ForegroundColor = ConsoleColor.DarkCyan;
@@ -451,6 +692,7 @@ namespace LPR381
             if (isRevised)
             {
                 Console.WriteLine("    2. Memory Setup: Initialize Inverse Basis Matrix (B^-1)     ");
+                Console.WriteLine("       (Equalities split into <= and >=. Slacks/Excesses added) ");
                 Console.WriteLine("    3. Price Out Phase: Calculate Simplex Multipliers (Pi)      ");
                 Console.WriteLine("       and solve for entering variable via Reduced Costs.       ");
                 Console.WriteLine("    4. Product Form: Compute entering column (d = B^-1 * A_j).  ");
@@ -459,8 +701,9 @@ namespace LPR381
             }
             else
             {
-                Console.WriteLine("    2. Canonical Conversion: Adding slack variables (s1, s2...) ");
-                Console.WriteLine("    3. Pricing Out: Search Z-Row for most negative coefficient.");
+                Console.WriteLine("    2. Canonical Conversion: Setup strictly Slack & Excess.     ");
+                Console.WriteLine("       (Equalities split into <= and >=. No Artificials used)   ");
+                Console.WriteLine("    3. Pricing Out: Search Z-Row for most negative coefficient. ");
                 Console.WriteLine("    4. Minimum Ratio Test: Min(RHS / Pivot_Col) for leaving var.");
                 Console.WriteLine("    5. Jordan Pivoting: Normalizes row and zeroes column.       ");
             }
