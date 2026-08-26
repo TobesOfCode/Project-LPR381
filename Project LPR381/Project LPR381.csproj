@@ -6,5 +6,7 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+		<AssemblyName>solve</AssemblyName>
+		<AssemblyTitle>solve</AssemblyTitle>
 	</PropertyGroup>
 </Project>

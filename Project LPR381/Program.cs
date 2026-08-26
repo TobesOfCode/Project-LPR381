@@ -83,8 +83,8 @@ namespace LPR381
                 Console.WriteLine("  3. Branch & Bound Simplex");
                 Console.WriteLine("  4. Branch & Bound Knapsack");
                 Console.WriteLine("  5. Cutting Plane Algorithm");
-                Console.WriteLine("  6. Post-Optimality & Sensitivity (Analysis & Duality)");
-                Console.WriteLine("  8. [BONUS] Non-Linear Programming Solver (Any Non-Linear / f(x) = x^2)");
+                Console.WriteLine("  6. Post-Optimality & Sensitivity");
+                Console.WriteLine("  8. Non-Linear Programming Solver");
                 Console.WriteLine("  0. Exit System");
                 Console.WriteLine("  --------------------------------------------------------------");
 

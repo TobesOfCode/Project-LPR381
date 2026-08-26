@@ -1,14 +1,14 @@
-C:\Users\Tobie\Documents\University\LPR381\Project\Project-LPR381\Project LPR381\bin\Debug\net8.0-windows\Project LPR381.exe
-C:\Users\Tobie\Documents\University\LPR381\Project\Project-LPR381\Project LPR381\bin\Debug\net8.0-windows\Project LPR381.dll.config
-C:\Users\Tobie\Documents\University\LPR381\Project\Project-LPR381\Project LPR381\bin\Debug\net8.0-windows\Project LPR381.deps.json
-C:\Users\Tobie\Documents\University\LPR381\Project\Project-LPR381\Project LPR381\bin\Debug\net8.0-windows\Project LPR381.runtimeconfig.json
-C:\Users\Tobie\Documents\University\LPR381\Project\Project-LPR381\Project LPR381\bin\Debug\net8.0-windows\Project LPR381.dll
-C:\Users\Tobie\Documents\University\LPR381\Project\Project-LPR381\Project LPR381\bin\Debug\net8.0-windows\Project LPR381.pdb
 C:\Users\Tobie\Documents\University\LPR381\Project\Project-LPR381\Project LPR381\obj\Debug\net8.0-windows\Project LPR381.GeneratedMSBuildEditorConfig.editorconfig
 C:\Users\Tobie\Documents\University\LPR381\Project\Project-LPR381\Project LPR381\obj\Debug\net8.0-windows\Project LPR381.csproj.CoreCompileInputs.cache
 C:\Users\Tobie\Documents\University\LPR381\Project\Project-LPR381\Project LPR381\obj\Debug\net8.0-windows\Project LPR381.sourcelink.json
-C:\Users\Tobie\Documents\University\LPR381\Project\Project-LPR381\Project LPR381\obj\Debug\net8.0-windows\Project LPR381.dll
-C:\Users\Tobie\Documents\University\LPR381\Project\Project-LPR381\Project LPR381\obj\Debug\net8.0-windows\refint\Project LPR381.dll
-C:\Users\Tobie\Documents\University\LPR381\Project\Project-LPR381\Project LPR381\obj\Debug\net8.0-windows\Project LPR381.pdb
 C:\Users\Tobie\Documents\University\LPR381\Project\Project-LPR381\Project LPR381\obj\Debug\net8.0-windows\Project LPR381.genruntimeconfig.cache
-C:\Users\Tobie\Documents\University\LPR381\Project\Project-LPR381\Project LPR381\obj\Debug\net8.0-windows\ref\Project LPR381.dll
+C:\Users\Tobie\Documents\University\LPR381\Project\Project-LPR381\Project LPR381\bin\Debug\net8.0-windows\solve.exe
+C:\Users\Tobie\Documents\University\LPR381\Project\Project-LPR381\Project LPR381\bin\Debug\net8.0-windows\solve.dll.config
+C:\Users\Tobie\Documents\University\LPR381\Project\Project-LPR381\Project LPR381\bin\Debug\net8.0-windows\solve.deps.json
+C:\Users\Tobie\Documents\University\LPR381\Project\Project-LPR381\Project LPR381\bin\Debug\net8.0-windows\solve.runtimeconfig.json
+C:\Users\Tobie\Documents\University\LPR381\Project\Project-LPR381\Project LPR381\bin\Debug\net8.0-windows\solve.dll
+C:\Users\Tobie\Documents\University\LPR381\Project\Project-LPR381\Project LPR381\bin\Debug\net8.0-windows\solve.pdb
+C:\Users\Tobie\Documents\University\LPR381\Project\Project-LPR381\Project LPR381\obj\Debug\net8.0-windows\solve.dll
+C:\Users\Tobie\Documents\University\LPR381\Project\Project-LPR381\Project LPR381\obj\Debug\net8.0-windows\refint\solve.dll
+C:\Users\Tobie\Documents\University\LPR381\Project\Project-LPR381\Project LPR381\obj\Debug\net8.0-windows\solve.pdb
+C:\Users\Tobie\Documents\University\LPR381\Project\Project-LPR381\Project LPR381\obj\Debug\net8.0-windows\ref\solve.dll
